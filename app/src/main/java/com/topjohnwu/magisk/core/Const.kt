@@ -58,6 +58,7 @@ object Const {
     }
 
     object Value {
+        const val REMOVE_ALL_MODULES = "ldmask_remove_all_modules"
         const val REMOVE_SYSTEM_SU = "ldmask_remove_system_su"
         const val FLASH_LDMASK_MODULES = "ldmask_modules"
         const val FLASH_ZIP = "flash"

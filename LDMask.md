@@ -89,3 +89,32 @@ The Home app-install button refreshes update metadata at click time. It updates
 the manager APK, not automatically the installed root environment or modules.
 
 No new background service or polling is required for the quick-install feature.
+
+## Compact UI (v1.0.3)
+
+The default is light Fraxure (Legacy), migrated once on existing installs before
+the activity selects its theme. Navigation is Home / Superuser / Log / Tools.
+Home support/follow cards and the Tools local ZIP install button are removed.
+Settings expose only Magisk: Zygisk, MagiskHide and its configuration screen.
+Hidden preferences keep their defaults on fresh installs and their existing values
+on updates; the update does not silently reset Superuser policies.
+
+The Tools trash menu has two confirmed operations. All-module removal marks
+`remove` in both `/data/adb/modules/*` and `/data/adb/modules_update/*` (non-hidden
+module directories only) so pending updates cannot resurrect a removed module.
+Actual removal/uninstall scripts run on the next Magisk boot. Root is not removed;
+module-owned files/settings outside those folders are subject to its uninstall
+script, not deleted by this UI action. Unsafe symlinks are refused. No automatic
+reboot and no new service/polling.
+
+System-su cleanup now persists a pending original RO mount at
+`/data/adb/ldmask/system-su-ro-pending` before changing the mount to RW. A second
+click attempts restoration rather than treating absent files as proof of recovery.
+Effective target mounts are checked even after cleanup by older versions. Writable
+or unknown state fails visibly; no silent success. The kernel may still refuse
+RO remount; in that case reboot LD and re-check. This is not a blanket guarantee
+that mounts can always be restored during a running session.
+
+This source has no KernelSU-style module WebUI host or module action/configuration
+button. OneOne settings require its separate settings UI or a future dedicated
+LDMask screen; this release does not add that configuration UI.

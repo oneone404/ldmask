@@ -1,19 +1,15 @@
 package com.topjohnwu.magisk.ui.settings
 
-import android.os.Build
 import android.view.View
 import android.widget.Toast
-import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.viewModelScope
 import com.topjohnwu.magisk.BR
-import com.topjohnwu.magisk.BuildConfig
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.arch.BaseViewModel
 import com.topjohnwu.magisk.core.Const
 import com.topjohnwu.magisk.core.Info
 import com.topjohnwu.magisk.core.di.AppContext
 import com.topjohnwu.magisk.core.di.ServiceLocator
-import com.topjohnwu.magisk.core.isRunningAsStub
 import com.topjohnwu.magisk.core.ktx.activity
 import com.topjohnwu.magisk.core.ktx.toast
 import com.topjohnwu.magisk.core.tasks.HideAPK
@@ -32,62 +28,11 @@ class SettingsViewModel : BaseViewModel(), BaseSettingsItem.Handler {
         it.put(BR.handler, this)
     }
 
-    init {
-        viewModelScope.launch {
-            Language.loadLanguages(this)
-        }
-    }
-
     private fun createItems(): List<BaseSettingsItem> {
-        val context = AppContext
-        val hidden = context.packageName != BuildConfig.APPLICATION_ID
-
-        // Customization
-        val list = mutableListOf(
-            Customization,
-            Theme, Language
-        )
-        if (isRunningAsStub && ShortcutManagerCompat.isRequestPinShortcutSupported(context))
-            list.add(AddShortcut)
-
-        // Manager
-        list.addAll(listOf(
-            AppSettings,
-            UpdateChannel, UpdateChannelUrl, DoHToggle, UpdateChecker, DownloadPath
-        ))
-        if (Info.env.isActive && Const.USER_ID == 0) {
-            if (hidden) list.add(Restore) else list.add(Hide)
-        }
-
-        // Magisk
-        if (Info.env.isActive) {
-            list.addAll(listOf(
-                Magisk,
-                SystemlessHosts
-            ))
-            if (Const.Version.atLeast_24_0()) {
-                list.addAll(listOf(Zygisk, DenyList, SuList, DenyListConfig))
-            }
-        }
-
-        // Superuser
-        if (Info.showSuperUser) {
-            list.addAll(listOf(
-                Superuser,
-                Tapjack, Authentication, AccessMode, MultiuserMode, MountNamespaceMode,
-                AutomaticResponse, RequestTimeout, SUNotification
-            ))
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-                // Re-authenticate is not feasible on 8.0+
-                list.add(Reauthenticate)
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                // Can hide overlay windows on 12.0+
-                list.remove(Tapjack)
-            }
-        }
-
-        return list
+        // Keep the upstream defaults/values; only expose these root controls.
+        return if (Info.env.isActive && Const.Version.atLeast_24_0())
+            listOf(Magisk, Zygisk, DenyList, DenyListConfig)
+        else emptyList()
     }
 
     override fun onItemPressed(view: View, item: BaseSettingsItem, andThen: () -> Unit) {

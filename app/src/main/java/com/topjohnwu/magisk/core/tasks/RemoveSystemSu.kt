@@ -3,12 +3,10 @@ package com.topjohnwu.magisk.core.tasks
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.core.Info
 import com.topjohnwu.magisk.core.di.AppContext
-import com.topjohnwu.superuser.CallbackList
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
-import java.util.concurrent.atomic.AtomicInteger
 
 object RemoveSystemSu {
     private fun quote(value: String) = "'" + value.replace("'", "'\\''") + "'"
@@ -28,18 +26,16 @@ object RemoveSystemSu {
             // root executable to remain discoverable via the app's original PATH.
             val script = "ORIGINAL_APP_PATH=${quote(System.getenv("PATH").orEmpty())}\n$rawScript"
             val quoted = quote(script)
-            val lines = AtomicInteger()
-            val output = object : CallbackList<String>() {
-                override fun onAddElement(e: String?) {
-                    if (e != null && lines.incrementAndGet() <= 250) log(e.take(1024))
-                }
-            }
             val command = "( bb=/data/adb/magisk/busybox; " +
                 "[ -f \"\$bb\" ] && [ -x \"\$bb\" ] || bb=\"\$(magisk --path)/.magisk/busybox/busybox\"; " +
                 "[ -f \"\$bb\" ] && [ -x \"\$bb\" ] || { echo '! BusyBox unavailable'; exit 1; }; " +
                 "\"\$bb\" timeout -s TERM -k 5 30 \"\$bb\" sh -c $quoted )"
-            val success = Shell.cmd(command).to(output).exec().isSuccess
-            if (!success) log("! Cleanup failed or timed out. Review output; one file may already have been removed.")
+            // Drain output before the final result so the generic error cannot
+            // overtake the actual mount/deletion diagnosis in the UI.
+            val result = Shell.cmd(command).exec()
+            (result.out + result.err).take(250).forEach { log(it.take(1024)) }
+            val success = result.isSuccess
+            if (!success) log("! Cleanup incomplete (exit ${result.code}). Check file and mount results above; reboot may be required.")
             success
         } catch (e: Exception) {
             log("! Cleanup error: ${e.message?.take(1024) ?: e.javaClass.simpleName}")

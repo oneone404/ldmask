@@ -41,7 +41,7 @@ class LogFragment : BaseFragment<FragmentLogMd2Binding>(), MenuProvider {
 
     override fun onStart() {
         super.onStart()
-        activity?.setTitle(R.string.logs)
+        activity?.setTitle(R.string.ldmask_log)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

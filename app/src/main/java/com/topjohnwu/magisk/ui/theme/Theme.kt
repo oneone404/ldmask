@@ -48,7 +48,10 @@ enum class Theme(
     }
 
     companion object {
-        val selected get() = values().getOrNull(Config.themeOrdinal) ?: Piplup
+        // Read-only override until Config.load migrates preferences. Do not write
+        // preferences here: doing so would break upstream package migration.
+        val selected get() = if (!Config.ldmaskUiDefaultsApplied) Fraxure
+            else values().getOrNull(Config.themeOrdinal) ?: Fraxure
     }
 
 }

@@ -81,7 +81,7 @@ object Shortcuts {
         if (Info.env.isActive) {
             shortCuts.add(
                 ShortcutInfo.Builder(context, Const.Nav.MODULES)
-                    .setShortLabel(context.getString(R.string.modules))
+                    .setShortLabel(context.getString(R.string.ldmask_tools))
                     .setIntent(
                         Intent(intent).putExtra(Const.Key.OPEN_SECTION, Const.Nav.MODULES)
                     )

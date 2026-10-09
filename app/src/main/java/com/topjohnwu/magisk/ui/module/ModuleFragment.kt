@@ -5,6 +5,8 @@ import android.view.View
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
+import android.view.ContextThemeWrapper
+import android.widget.PopupMenu
 import androidx.core.view.MenuProvider
 import com.topjohnwu.magisk.core.Info
 import com.topjohnwu.magisk.R
@@ -24,7 +26,7 @@ class ModuleFragment : BaseFragment<FragmentModuleMd2Binding>(), MenuProvider {
 
     override fun onStart() {
         super.onStart()
-        activity?.title = resources.getString(R.string.modules)
+        activity?.title = resources.getString(R.string.ldmask_tools)
         viewModel.data.observe(this) {
             it ?: return@observe
             val displayName = runCatching { it.displayName }.getOrNull() ?: return@observe
@@ -51,12 +53,25 @@ class ModuleFragment : BaseFragment<FragmentModuleMd2Binding>(), MenuProvider {
     }
 
     override fun onPrepareMenu(menu: Menu) {
-        menu.findItem(R.id.action_remove_system_su)?.isEnabled = Info.env.isActive
+        menu.findItem(R.id.action_tools_cleanup)?.isEnabled = Info.env.isActive
     }
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
-        if (item.itemId != R.id.action_remove_system_su) return false
-        viewModel.removeSystemSuPressed()
+        if (item.itemId != R.id.action_tools_cleanup) return false
+        val host = activity ?: return false
+        val anchor = host.findViewById<View>(R.id.action_tools_cleanup) ?: return false
+        PopupMenu(ContextThemeWrapper(host, R.style.Foundation_PopupMenu), anchor).apply {
+            host.menuInflater.inflate(R.menu.menu_tools_cleanup, menu)
+            setOnMenuItemClickListener {
+                when (it.itemId) {
+                    R.id.action_remove_all_modules -> viewModel.removeAllModulesPressed()
+                    R.id.action_remove_system_su -> viewModel.removeSystemSuPressed()
+                    else -> return@setOnMenuItemClickListener false
+                }
+                true
+            }
+            show()
+        }
         return true
     }
 

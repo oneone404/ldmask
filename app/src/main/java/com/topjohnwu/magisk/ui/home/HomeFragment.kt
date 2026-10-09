@@ -24,7 +24,7 @@ class HomeFragment : BaseFragment<FragmentHomeMd2Binding>(), MenuProvider {
 
     override fun onStart() {
         super.onStart()
-        activity?.setTitle(R.string.section_home)
+        activity?.setTitle(R.string.ldmask_home)
         DownloadService.observeProgress(this, viewModel::onProgressUpdate)
     }
 

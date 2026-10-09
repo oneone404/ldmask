@@ -1,0 +1,6 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/action_remove_all_modules"
+        android:title="@string/ldmask_remove_all_modules" />
+    <item android:id="@+id/action_remove_system_su"
+        android:title="@string/ldmask_remove_system_su" />
+</menu>

@@ -132,8 +132,8 @@ object Config : PreferenceConfig, DBConfig {
     var suNotification by preferenceStrInt(Key.SU_NOTIFICATION, Value.NOTIFICATION_TOAST)
     var updateChannel by preferenceStrInt(Key.UPDATE_CHANNEL, defaultChannel)
 
-    var darkTheme by preference(Key.DARK_THEME, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-    var themeOrdinal by preference(Key.THEME_ORDINAL, Theme.Piplup.ordinal)
+    var darkTheme by preference(Key.DARK_THEME, AppCompatDelegate.MODE_NIGHT_NO)
+    var themeOrdinal by preference(Key.THEME_ORDINAL, Theme.Fraxure.ordinal)
     var suReAuth by preference(Key.SU_REAUTH, false)
     var suTapjack by preference(Key.SU_TAPJACK, true)
     private var checkUpdatePrefs by preference(Key.CHECK_UPDATES, false)
@@ -174,6 +174,18 @@ object Config : PreferenceConfig, DBConfig {
 
     private const val SU_FINGERPRINT = "su_fingerprint"
 
+    val ldmaskUiDefaultsApplied get() = prefs.getBoolean("ldmask_compact_ui_v1", false)
+
+    fun applyLDMaskUiDefaults() {
+        if (!ldmaskUiDefaultsApplied) {
+            prefs.edit {
+                putInt(Key.THEME_ORDINAL, Theme.Fraxure.ordinal)
+                putInt(Key.DARK_THEME, AppCompatDelegate.MODE_NIGHT_NO)
+                putBoolean("ldmask_compact_ui_v1", true)
+            }
+        }
+    }
+
     fun load(pkg: String?) {
         // Only try to load prefs when fresh install and a previous package name is set
         if (pkg != null && prefs.all.isEmpty()) runCatching {
@@ -181,6 +193,8 @@ object Config : PreferenceConfig, DBConfig {
             return
         }
 
+        // Other hidden preferences and root policies are deliberately preserved.
+        applyLDMaskUiDefaults()
         prefs.edit {
             // Settings migration
             if (prefs.getBoolean(SU_FINGERPRINT, false))

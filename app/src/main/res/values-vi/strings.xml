@@ -241,7 +241,7 @@
     <string name="restore_app_confirmation">Điều này sẽ khôi phục ứng dụng ẩn về nguyên bản. Bạn chắc chắn muốn làm điều này chứ?</string>
 
     <string name="direct_install_system">Cài đặt trực tiếp (sửa đổi /system trực tiếp)</string>
-    <string name="settings_hidelist_config_title">Định cấu hình MagiskHide</string>
+    <string name="settings_hidelist_config_title">Cấu Hình MagiskHide</string>
     <string name="settings_hidelist_config_summary">Chọn các quy trình sẽ được đưa vào danh sách ẩn</string>
     <string name="settings_magiskhide_title">MagiskHide</string>
     <string name="settings_magiskhide_summary">Các sửa đổi của Magisk được hoàn nguyên đối với các tiến trình trong danh sách ẩn</string>

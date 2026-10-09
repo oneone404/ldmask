@@ -5,7 +5,7 @@
     <item
         android:id="@+id/homeFragment"
         android:icon="@drawable/ic_home_md2"
-        android:title="@string/section_home"
+        android:title="@string/ldmask_home"
         tools:showAsAction="always" />
 
     <item
@@ -17,13 +17,13 @@
     <item
         android:id="@+id/logFragment"
         android:icon="@drawable/ic_bug_md2"
-        android:title="@string/logs"
+        android:title="@string/ldmask_log"
         tools:showAsAction="always" />
 
     <item
         android:id="@+id/modulesFragment"
         android:icon="@drawable/ic_module_md2"
-        android:title="@string/modules"
+        android:title="@string/ldmask_tools"
         tools:showAsAction="always" />
 
 </menu>

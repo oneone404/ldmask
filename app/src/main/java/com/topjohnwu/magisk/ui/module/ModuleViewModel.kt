@@ -19,6 +19,7 @@ import com.topjohnwu.magisk.databinding.diffList
 import com.topjohnwu.magisk.databinding.set
 import com.topjohnwu.magisk.dialog.LocalModuleInstallDialog
 import com.topjohnwu.magisk.dialog.RemoveSystemSuDialog
+import com.topjohnwu.magisk.dialog.RemoveAllModulesDialog
 import com.topjohnwu.magisk.dialog.OnlineModuleInstallDialog
 import com.topjohnwu.magisk.events.GetContentEvent
 import com.topjohnwu.magisk.events.SnackbarEvent
@@ -27,8 +28,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 
 class ModuleViewModel : AsyncLoadViewModel() {
-
-    val bottomBarBarrierIds = intArrayOf(R.id.module_update, R.id.module_remove)
 
     private val itemsInstalled = diffList<LocalModuleRvItem>()
 
@@ -99,6 +98,14 @@ class ModuleViewModel : AsyncLoadViewModel() {
 
     fun confirmRemoveSystemSu() {
         MainDirections.actionFlashFragment(Const.Value.REMOVE_SYSTEM_SU, null).navigate()
+    }
+
+    fun removeAllModulesPressed() {
+        if (Info.env.isActive) RemoveAllModulesDialog(this).show()
+    }
+
+    fun confirmRemoveAllModules() {
+        MainDirections.actionFlashFragment(Const.Value.REMOVE_ALL_MODULES, null).navigate()
     }
 
     fun requestInstallLocalModule(uri: Uri, displayName: String) {

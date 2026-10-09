@@ -1,5 +1,12 @@
 # LDMask tests
 
+`powershell -File tests/test-tools-shell.ps1 -Serial <ADB-serial>` executes Android
+shell fixtures without root: all target paths are rewritten into a unique
+`/data/local/tmp/ldmask-fixture-*` tree, root discovery and mount are mocked.
+It never executes the real mount/su command or touches installed modules. Fixture
+cleanup is guarded to the exact generated test tree. This verifies shell control
+flow, not a real kernel remount or UI integration.
+
 `gradlew :app:testDebugUnitTest -PconfigPath=config.ldmask.prop`
 
 The quick-installer JVM suite uses fake network/root implementations, so no
