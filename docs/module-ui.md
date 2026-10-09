@@ -29,11 +29,15 @@ bot uses existing inotify. Boot-delay changes affect the next boot, not an ongoi
 boot wait. Bot enable changes apply after Save while the service is running.
 Disabling the Magisk module is distinct and retains normal reboot semantics.
 
-Since v1.0.10, Mở Game sits to the right of Tải Lại. It makes one explicit root
-activity-start request for Play Together VNG on the IO dispatcher, bounded by a
-15-second timeout. It does not force-stop/restart the game, save settings, enable
-the bot or grant root to the game. Buttons are disabled while an operation runs.
-Successful launch has no note; root/resolve/launch errors are reported normally.
+Mở Game sits to the right of Tải Lại. Since v1.0.11 it verifies PID plus attached
+Activity and foreground state, confirmed twice with the same PID. It protects any
+game observed attached/running during the click from force-stop, even if focus
+fails. Absent or explicitly INITIALIZING state can be recovered with force-stop
+and another root start; unknown/failed dumpsys output is never a reason to kill.
+Maximum three start attempts, 20-second verification per attempt, 120-second outer
+timeout and short per-command bounds. The worker is serialized process-wide and
+buttons remain disabled while running. All launch failures/successes are silent.
+No implicit settings save, bot enable, root grant to game or background monitor.
 
 Build module-src/ldlogin with build.ps1, then tools/package-modules.ps1.
 Native source changes in v1.0.8 are identity/path renames, not new matching logic.

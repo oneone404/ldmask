@@ -257,7 +257,7 @@ class LDMaskUiContractTest {
         assertTrue(fragment.contains("if (field.key == \"enabled\") \"LDLogin\""))
         assertFalse(fragment.contains("chooseGame"))
         val vm = source("java/com/topjohnwu/magisk/ui/module/ModuleConfigViewModel.kt")
-        assertEquals(3, Regex("message.value = \"\"").findAll(vm).count())
+        assertEquals(4, Regex("message.value = \"\"").findAll(vm).count())
         assertFalse(vm.contains("Thiếu hoặc hỏng cấu hình"))
     }
 
@@ -277,7 +277,7 @@ class LDMaskUiContractTest {
         assertTrue(labels.contains(">Xoá Su Bin/Xbin<"))
     }
 
-    @Test fun gameLaunchIsRootOnlyBoundedAndAfterReloadWithoutSaving() {
+    @Test fun gameLaunchIsRootOnlyBoundedVerifiedSilentAndAfterReloadWithoutSaving() {
         val layout = source("res/layout/fragment_module_config.xml")
         assertTrue(layout.indexOf("@+id/config_open_game") > layout.indexOf("@+id/config_reload"))
         assertTrue(layout.contains("@string/ldmask_open_game"))
@@ -292,15 +292,25 @@ class LDMaskUiContractTest {
         assertTrue(task.contains("Dispatchers.IO"))
         assertTrue(task.contains("Info.env.isActive"))
         assertTrue(task.contains("Shell.cmd(command)"))
-        assertTrue(task.contains("timeout -s TERM -k 2 15"))
-        assertTrue(task.contains("\"LDLOGIN_LAUNCH_SENT\" !in result.out"))
+        assertTrue(task.contains("timeout -s TERM -k 2 120"))
+        assertTrue(task.contains("\"LDLOGIN_GAME_READY\" in result.out"))
+        assertTrue(task.contains("running.compareAndSet(false, true)"))
+        assertTrue(task.contains("running.set(false)"))
+        assertTrue(vm.contains("catch (_: Exception)"))
+        assertFalse(vm.contains("message.value = e.message"))
         val script = source("res/raw/ldmask_open_game.sh")
         assertTrue(script.contains("[ \"\$(id -u)\" = 0 ]"))
         assertTrue(script.contains("PKG=com.vng.playtogether"))
-        assertEquals(1, Regex("OUTPUT=\\$\\(am start").findAll(script).count())
-        assertFalse(script.contains("am force-stop"))
+        assertEquals(1, Regex("OUTPUT=\\$\\(bounded am start").findAll(script).count())
+        assertTrue(script.contains("am force-stop \"\$PKG\""))
+        assertTrue(script.contains("PROTECT_RUNNING"))
+        assertTrue(script.contains("\"\$ATTEMPT\" -le 3"))
+        assertTrue(script.contains("pidof \"\$PKG\""))
+        assertTrue(script.contains("bounded dumpsys activity activities"))
+        assertTrue(script.contains("state=INITIALIZING"))
+        assertTrue(script.contains("app=ProcessRecord"))
+        assertTrue(script.contains("\"\$LAST_READY\" != \"\$OBS\""))
         assertFalse(script.contains("monkey -"))
-        assertFalse(script.contains("sleep "))
     }
 
     @Test fun unlistedCleanupIsFlagOnlyAndUsesTwoPassGuards() {

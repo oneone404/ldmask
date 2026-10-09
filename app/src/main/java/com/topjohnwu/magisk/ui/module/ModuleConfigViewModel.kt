@@ -51,13 +51,14 @@ class ModuleConfigViewModel : BaseViewModel() {
     }
     fun openGame() {
         if (busy.value == true || moduleId != "ldlogin") return
+        message.value = ""
         busy.value = true
         viewModelScope.launch {
             try {
                 LDMaskGameLauncher.exec()
                 message.value = ""
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { message.value = e.message.orEmpty() }
+            catch (_: Exception) { /* User-requested silent launch failure. */ }
             finally { busy.value = false }
         }
     }

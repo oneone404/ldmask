@@ -54,11 +54,12 @@ These tests do not prove LDMenu's opaque library works after a real ID migration
 ## Root game launch (v1.0.10)
 
 `powershell -File tests/test-game-launch.ps1 -Serial <ADB-serial>` runs the actual
-launch script with all UID/package/activity commands mocked. Nine cases cover
-first/open-existing launch, root refusal, missing/foreign/malformed component,
-command failure, error output with zero exit and exceptions. It never launches,
-stops or modifies the real game. UI contracts check button position, busy guard,
-IO/root/timeout backend and no implicit settings save or repeated launch requests.
+launch script with all UID/package/activity commands mocked and a simulated clock.
+Eighteen cases cover running-game protection, startup recovery, concurrent healthy
+transition, failed focus/disappearance, missing/failed dump format, maximum attempts,
+stop failure, missing root/game, command errors and no false success. It never
+launches/stops/modifies the real game. UI contracts check button position, busy and
+process-wide guards, IO/root/timeouts, readiness verification and silent failure.
 
 ## Post-root preset (v1.0.5)
 

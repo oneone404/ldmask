@@ -2,10 +2,6 @@
     <string name="ldmask_save">Save</string>
     <string name="ldmask_reload">Reload</string>
     <string name="ldmask_open_game">Open Game</string>
-    <string name="ldmask_game_root_required">Magisk root is not active.</string>
-    <string name="ldmask_game_not_found">Play Together VNG launcher activity is not available.</string>
-    <string name="ldmask_game_launch_failed">Could not open Play Together VNG with root.</string>
-    <string name="ldmask_game_launch_timeout">Game launch timed out. Try again.</string>
     <string name="ldmask_choose_modules">Choose Modules</string>
     <string name="ldmask_configuration">Configuration</string>
     <string name="ldmask_login_configuration">LDLogin Configuration</string>

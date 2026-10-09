@@ -2,10 +2,6 @@
     <string name="ldmask_save">Lưu</string>
     <string name="ldmask_reload">Tải Lại</string>
     <string name="ldmask_open_game">Mở Game</string>
-    <string name="ldmask_game_root_required">Root Magisk chưa hoạt động.</string>
-    <string name="ldmask_game_not_found">Không tìm thấy màn hình mở Play Together VNG.</string>
-    <string name="ldmask_game_launch_failed">Không mở được Play Together VNG bằng root.</string>
-    <string name="ldmask_game_launch_timeout">Mở game quá thời gian chờ. Thử lại.</string>
     <string name="ldmask_choose_modules">Chọn Module</string>
     <string name="ldmask_configuration">Cấu Hình</string>
     <string name="ldmask_login_configuration">Cấu Hình LDLogin</string>
