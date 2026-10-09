@@ -122,7 +122,7 @@
     <string name="settings_dark_mode_dark">Luôn tối</string>
     <string name="settings_download_path_title">Đường dẫn tải xuống</string>
     <string name="settings_download_path_message">Các tệp sẽ được lưu vào %1$s</string>
-    <string name="settings_hide_app_title">Ẩn ứng dụng Magisk</string>
+    <string name="settings_hide_app_title">Ẩn LDMask</string>
     <string name="settings_hide_app_summary">Cài đặt ứng dụng proxy với ID gói ngẫu nhiên và nhãn ứng dụng tùy chỉnh</string>
     <string name="settings_restore_app_title">Khôi phục ứng dụng Magisk</string>
     <string name="settings_restore_app_summary">Bỏ ẩn ứng dụng và khôi phục nó về APK ban đầu</string>
@@ -212,7 +212,7 @@
     <string name="flashing">Đang cài…</string>
     <string name="done">Xong!</string>
     <string name="failure">Thất bại!</string>
-    <string name="hide_app_title">Đang ẩn ứng dụng Magisk…</string>
+    <string name="hide_app_title">Đang ẩn LDMask…</string>
     <string name="open_link_failed_toast">Không tìm thấy ứng dụng nào để mở liên kết</string>
     <string name="complete_uninstall">Hoàn thành Gỡ cài đặt</string>
     <string name="restore_img">Khôi phục đĩa ảnh boot (boot image)</string>

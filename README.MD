@@ -1,3 +1,26 @@
+# LDMask
+
+Personal Kitsune-derived root manager for LDPlayer. This is not an official
+Magisk/Kitsune release.
+
+- [Download APK and both modules](https://github.com/oneone404/ldmask/releases/latest)
+- [Fork, provenance, build and installation notes](LDMask.md)
+- [Tests](tests/README.md)
+
+App: **LDMask** (`io.github.oneone404.ldmask`). The Modules tab can download,
+verify and install **OneOne + ktools** together from the latest stable release,
+then remove temporary ZIPs. No automatic reboot or added resident service.
+The package/native manager identity differs from the original baseline, so
+reinstall the root environment for LDMask rather than replacing only its APK.
+
+Experimental build; release-mode binaries, local Android debug signing key.
+Preserve upstream licenses and credits. The bundled ktools ZIP is user-supplied
+binary material, not source audited by this project.
+
+---
+
+## Original upstream project information (retained for attribution)
+
 ![](docs/images/logo.png#gh-dark-mode-only)
 ![](docs/images/logo_dark.png#gh-light-mode-only)
 

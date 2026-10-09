@@ -1,12 +1,7 @@
 package com.topjohnwu.magisk.core.repository
 
 import com.topjohnwu.magisk.core.Config
-import com.topjohnwu.magisk.core.Config.Value.BETA_CHANNEL
-import com.topjohnwu.magisk.core.Config.Value.CANARY_CHANNEL
 import com.topjohnwu.magisk.core.Config.Value.CUSTOM_CHANNEL
-import com.topjohnwu.magisk.core.Config.Value.DEBUG_CHANNEL
-import com.topjohnwu.magisk.core.Config.Value.DEFAULT_CHANNEL
-import com.topjohnwu.magisk.core.Config.Value.STABLE_CHANNEL
 import com.topjohnwu.magisk.core.Info
 import com.topjohnwu.magisk.core.data.GithubPageServices
 import com.topjohnwu.magisk.core.data.RawServices
@@ -19,27 +14,15 @@ class NetworkService(
     private val raw: RawServices
 ) {
     suspend fun fetchUpdate() = safe {
-        var info = when (Config.updateChannel) {
-            DEFAULT_CHANNEL, STABLE_CHANNEL -> fetchStableUpdate()
-            BETA_CHANNEL -> fetchBetaUpdate()
-            CANARY_CHANNEL -> fetchCanaryUpdate()
-            DEBUG_CHANNEL -> fetchDebugUpdate()
+        // LDMask has its own package and native manager identity. Never offer
+        // an upstream Kitsune/Magisk APK as an in-place update for this fork.
+        when (Config.updateChannel) {
             CUSTOM_CHANNEL -> fetchCustomUpdate(Config.customChannelUrl)
-            else -> throw IllegalArgumentException()
+            else -> pages.fetchUpdateJSON("https://github.com/oneone404/ldmask/releases/latest/download/update.json")
         }
-        if (info.magisk.versionCode < Info.env.versionCode &&
-            Config.updateChannel == DEFAULT_CHANNEL) {
-            Config.updateChannel = BETA_CHANNEL
-            info = fetchBetaUpdate()
-        }
-        info
     }
 
     // UpdateInfo
-    private suspend fun fetchStableUpdate() = pages.fetchUpdateJSON("stable.json")
-    private suspend fun fetchBetaUpdate() = pages.fetchUpdateJSON("beta.json")
-    private suspend fun fetchCanaryUpdate() = pages.fetchUpdateJSON("canary.json")
-    private suspend fun fetchDebugUpdate() = pages.fetchUpdateJSON("debug.json")
     private suspend fun fetchCustomUpdate(url: String) = pages.fetchUpdateJSON(url)
 
     private inline fun <T> safe(factory: () -> T): T? {

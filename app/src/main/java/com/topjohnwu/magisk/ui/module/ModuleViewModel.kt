@@ -4,9 +4,11 @@ import android.net.Uri
 import androidx.databinding.Bindable
 import androidx.lifecycle.MutableLiveData
 import com.topjohnwu.magisk.BR
+import com.topjohnwu.magisk.MainDirections
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.arch.AsyncLoadViewModel
 import com.topjohnwu.magisk.core.Info
+import com.topjohnwu.magisk.core.Const
 import com.topjohnwu.magisk.core.base.ContentResultCallback
 import com.topjohnwu.magisk.core.model.module.LocalModule
 import com.topjohnwu.magisk.core.model.module.OnlineModule
@@ -82,6 +84,12 @@ class ModuleViewModel : AsyncLoadViewModel() {
 
     fun installPressed() = withExternalRW {
         GetContentEvent("application/zip", UriCallback()).publish()
+    }
+
+    fun quickInstallPressed() {
+        if (Info.env.isActive) {
+            MainDirections.actionFlashFragment(Const.Value.FLASH_LDMASK_MODULES, null).navigate()
+        }
     }
 
     fun requestInstallLocalModule(uri: Uri, displayName: String) {

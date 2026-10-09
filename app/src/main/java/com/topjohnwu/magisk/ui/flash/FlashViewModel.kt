@@ -17,6 +17,7 @@ import com.topjohnwu.magisk.core.ktx.synchronized
 import com.topjohnwu.magisk.core.ktx.timeFormatStandard
 import com.topjohnwu.magisk.core.ktx.toTime
 import com.topjohnwu.magisk.core.tasks.FlashZip
+import com.topjohnwu.magisk.core.tasks.LDMaskModuleInstaller
 import com.topjohnwu.magisk.core.tasks.MagiskInstaller
 import com.topjohnwu.magisk.core.utils.MediaStoreUtils
 import com.topjohnwu.magisk.core.utils.MediaStoreUtils.outputStream
@@ -25,6 +26,8 @@ import com.topjohnwu.magisk.events.SnackbarEvent
 import com.topjohnwu.superuser.CallbackList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import android.os.Handler
+import android.os.Looper
 
 class FlashViewModel : BaseViewModel() {
 
@@ -57,6 +60,15 @@ class FlashViewModel : BaseViewModel() {
 
         viewModelScope.launch {
             val result = when (action) {
+                Const.Value.FLASH_LDMASK_MODULES -> {
+                    showReboot = false
+                    val handler = Handler(Looper.getMainLooper())
+                    val result = LDMaskModuleInstaller.exec { line ->
+                        handler.post { outItems.add(line) }
+                    }
+                    showReboot = result.installedCount > 0
+                    result.success
+                }
                 Const.Value.FLASH_ZIP -> {
                     uri ?: return@launch
                     FlashZip(uri, outItems, logItems).exec()

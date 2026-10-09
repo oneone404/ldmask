@@ -40,7 +40,7 @@ object Const {
 
     object Url {
         const val PATREON_URL = "https://www.patreon.com/topjohnwu"
-        const val SOURCE_CODE_URL = "https://github.com/topjohnwu/Magisk"
+        const val SOURCE_CODE_URL = "https://github.com/oneone404/ldmask"
 
         val CHANGELOG_URL = if (APP_IS_CANARY) Info.remote.magisk.note
         else "https://topjohnwu.github.io/Magisk/releases/${BuildConfig.VERSION_CODE}.md"
@@ -58,6 +58,7 @@ object Const {
     }
 
     object Value {
+        const val FLASH_LDMASK_MODULES = "ldmask_modules"
         const val FLASH_ZIP = "flash"
         const val PATCH_FILE = "patch"
         const val FLASH_MAGISK = "magisk"

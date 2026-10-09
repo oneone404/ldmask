@@ -68,6 +68,10 @@ open class FlashZip(
     }
 
     open suspend fun exec() = withContext(Dispatchers.IO) {
+        if (!ModuleInstallGate.acquire()) {
+            console.add("! Another module installation is running")
+            return@withContext false
+        }
         try {
             if (!flash()) {
                 console.add("! Installation failed")
@@ -79,7 +83,11 @@ open class FlashZip(
             Timber.e(e)
             false
         } finally {
-            Shell.cmd("cd /", "rm -rf $installDir ${Const.TMPDIR}").submit()
+            try {
+                Shell.cmd("cd /", "rm -rf $installDir ${Const.TMPDIR}").exec()
+            } finally {
+                ModuleInstallGate.release()
+            }
         }
     }
 }

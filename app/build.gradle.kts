@@ -22,7 +22,7 @@ android {
     namespace = "com.topjohnwu.magisk"
 
     defaultConfig {
-        applicationId = "io.github.huskydg.magisk"
+        applicationId = "io.github.oneone404.ldmask"
         vectorDrawables.useSupportLibrary = true
         versionName = Config.version
         versionCode = Config.versionCode
@@ -68,6 +68,8 @@ configurations.all {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
     implementation(project(":app:shared"))
 
     implementation("com.github.topjohnwu:jtar:1.0.0")

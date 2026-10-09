@@ -1,0 +1,5 @@
+<resources>
+    <color name="ldmask_icon_background">#2563EB</color>
+    <string name="ldmask_quick_install">Quick install OneOne + ktools</string>
+    <string name="ldmask_quick_install_hint">Download both modules from the latest LDMask release, verify and install, then delete temporary ZIPs. Reboot manually when finished.</string>
+</resources>

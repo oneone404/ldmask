@@ -1,0 +1,4 @@
+<resources>
+    <string name="ldmask_quick_install">Cài nhanh OneOne + ktools</string>
+    <string name="ldmask_quick_install_hint">Tải hai module từ bản LDMask mới nhất, kiểm tra rồi cài và xoá ZIP tạm. Khởi động lại LD sau khi cài xong.</string>
+</resources>
