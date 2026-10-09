@@ -16,3 +16,14 @@ native/out
 /.idea
 /build
 /captures
+
+# Local signing / private files and generated Android outputs
+*.keystore
+*.p12
+*.pem
+*.idsig
+**/build/
+app/src/main/jniLibs/
+app/src/main/resources/META-INF/
+app/src/debug/assets/
+app/src/release/assets/
