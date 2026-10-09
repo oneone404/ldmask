@@ -83,12 +83,12 @@ class QuickModuleInstallTest {
         } finally { ModuleInstallGate.release() }
     }
 
-    private fun releaseJson(): JSONObject {
-        val json = JSONObject().put("draft", false).put("prerelease", false).put("tag_name", "v1.0.0")
+    private fun releaseJson(tag: String = "v1.0.0"): JSONObject {
+        val json = JSONObject().put("draft", false).put("prerelease", false).put("tag_name", tag)
         val assets = JSONArray()
         listOf("modules.json", "OneOne.zip", "Module.zip").forEach { name ->
             assets.put(JSONObject().put("name", name).put("size", 100)
-                .put("browser_download_url", "https://github.com/oneone404/ldmask/releases/download/v1.0.0/$name"))
+                .put("browser_download_url", "https://github.com/oneone404/ldmask/releases/download/$tag/$name"))
         }
         return json.put("assets", assets)
     }
@@ -114,14 +114,15 @@ class QuickModuleInstallTest {
         val path = System.getenv("LDMASK_RELEASE_FILES")
         assumeTrue("Set LDMASK_RELEASE_FILES to validate real release assets", path != null)
         val dir = File(requireNotNull(path))
-        val json = releaseJson()
+        val text = File(dir, "modules.json").readText()
+        val json = releaseJson(JSONObject(text).getString("release"))
         val assets = json.getJSONArray("assets")
         for (i in 0 until assets.length()) {
             val asset = assets.getJSONObject(i)
             asset.put("size", File(dir, asset.getString("name")).length())
         }
         val release = QuickModuleCatalog.release(json.toString())
-        val modules = QuickModuleCatalog.manifest(File(dir, "modules.json").readText(), release)
+        val modules = QuickModuleCatalog.manifest(text, release)
         assertEquals(listOf("oneone", "ktools_zygisk"), modules.map { it.id })
         modules.forEach { QuickModuleCatalog.validate(File(dir, it.asset.name), it) }
     }
