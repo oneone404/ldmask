@@ -18,6 +18,7 @@ import com.topjohnwu.magisk.core.ktx.timeFormatStandard
 import com.topjohnwu.magisk.core.ktx.toTime
 import com.topjohnwu.magisk.core.tasks.FlashZip
 import com.topjohnwu.magisk.core.tasks.LDMaskModuleInstaller
+import com.topjohnwu.magisk.core.tasks.RemoveSystemSu
 import com.topjohnwu.magisk.core.tasks.MagiskInstaller
 import com.topjohnwu.magisk.core.utils.MediaStoreUtils
 import com.topjohnwu.magisk.core.utils.MediaStoreUtils.outputStream
@@ -60,6 +61,11 @@ class FlashViewModel : BaseViewModel() {
 
         viewModelScope.launch {
             val result = when (action) {
+                Const.Value.REMOVE_SYSTEM_SU -> {
+                    showReboot = false
+                    val handler = Handler(Looper.getMainLooper())
+                    RemoveSystemSu.exec { line -> handler.post { outItems.add(line) } }
+                }
                 Const.Value.FLASH_LDMASK_MODULES -> {
                     showReboot = false
                     val handler = Handler(Looper.getMainLooper())

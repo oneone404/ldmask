@@ -116,10 +116,10 @@ object LDMaskModuleInstaller {
                 override fun onAddElement(e: String?) { if (e != null) boundedLog(e) }
             }
             // BusyBox shipped with LDMask contains timeout. Never fall back to an unbounded install.
-            val command = "bb=/data/adb/magisk/busybox; " +
-                "[ -x \"\$bb\" ] || bb=\"\$(magisk --path)/.magisk/busybox\"; " +
-                "[ -x \"\$bb\" ] || exit 1; " +
-                "\"\$bb\" timeout -s TERM -k 5 180 magisk --install-module ${quote(file.absolutePath)}"
+            val command = "( bb=/data/adb/magisk/busybox; " +
+                "[ -f \"\$bb\" ] && [ -x \"\$bb\" ] || bb=\"\$(magisk --path)/.magisk/busybox/busybox\"; " +
+                "[ -f \"\$bb\" ] && [ -x \"\$bb\" ] || exit 1; " +
+                "\"\$bb\" timeout -s TERM -k 5 180 magisk --install-module ${quote(file.absolutePath)} )"
             val success = Shell.cmd(command).to(output).exec().isSuccess
             val prop = quote("/data/adb/modules_update/${module.id}/module.prop")
             success && Shell.cmd(

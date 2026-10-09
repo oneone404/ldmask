@@ -6,6 +6,8 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.databinding.Bindable
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 import com.topjohnwu.magisk.BR
 import com.topjohnwu.magisk.BuildConfig
 import com.topjohnwu.magisk.R
@@ -43,10 +45,6 @@ class HomeViewModel(
         intArrayOf(R.id.home_magisk_icon, R.id.home_magisk_title, R.id.home_magisk_button)
     val appTitleBarrierIds =
         intArrayOf(R.id.home_manager_icon, R.id.home_manager_title, R.id.home_manager_button)
-
-    @get:Bindable
-    var isNoticeVisible = Config.safetyNotice
-        set(value) = set(value, field, { field = it }, BR.noticeVisible)
 
     val magiskState
         get() = when {
@@ -87,6 +85,8 @@ class HomeViewModel(
     companion object {
         private var checkedEnv = false
     }
+
+    private var checkingManager = false
 
     override suspend fun doLoadWork() {
         appState = State.LOADING
@@ -130,21 +130,26 @@ class HomeViewModel(
 
     fun onManagerPressed() = when (appState) {
         State.LOADING -> SnackbarEvent(R.string.loading).publish()
-        State.INVALID -> SnackbarEvent(R.string.no_connection).publish()
         else -> withExternalRW {
             withInstallPermission {
-                ManagerInstallDialog().show()
+                if (!checkingManager) viewModelScope.launch {
+                    checkingManager = true
+                    try {
+                        // Recheck at click time: Info.remote may predate a newly published release.
+                        val latest = svc.fetchUpdate()
+                        if (latest == null) SnackbarEvent(R.string.no_connection).publish()
+                        else {
+                            Info.remote = latest
+                            ManagerInstallDialog().show()
+                        }
+                    } finally { checkingManager = false }
+                }
             }
         }
     }
 
     fun onMagiskPressed() = withExternalRW {
         HomeFragmentDirections.actionHomeFragmentToInstallFragment().navigate()
-    }
-
-    fun hideNotice() {
-        Config.safetyNotice = false
-        isNoticeVisible = false
     }
 
     private suspend fun ensureEnv() {

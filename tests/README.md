@@ -14,3 +14,7 @@ The real-asset test is skipped when the variable is unset.
 Actual root installation, MagiskHide, reboot behavior, Android lifecycle and
 UI layout still require emulator/device testing. Passing JVM tests does not
 prove them. Do not run destructive root tests on production LDs without approval.
+
+`LDMaskUiContractTest` checks source-level contracts for banner removal, the
+toolbar action, fixed cleanup targets, root preflight, confirmation and timeout.
+It does not execute shell deletion/remount commands or prove their runtime behavior.

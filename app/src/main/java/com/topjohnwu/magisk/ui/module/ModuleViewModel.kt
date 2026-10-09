@@ -18,6 +18,7 @@ import com.topjohnwu.magisk.databinding.bindExtra
 import com.topjohnwu.magisk.databinding.diffList
 import com.topjohnwu.magisk.databinding.set
 import com.topjohnwu.magisk.dialog.LocalModuleInstallDialog
+import com.topjohnwu.magisk.dialog.RemoveSystemSuDialog
 import com.topjohnwu.magisk.dialog.OnlineModuleInstallDialog
 import com.topjohnwu.magisk.events.GetContentEvent
 import com.topjohnwu.magisk.events.SnackbarEvent
@@ -90,6 +91,14 @@ class ModuleViewModel : AsyncLoadViewModel() {
         if (Info.env.isActive) {
             MainDirections.actionFlashFragment(Const.Value.FLASH_LDMASK_MODULES, null).navigate()
         }
+    }
+
+    fun removeSystemSuPressed() {
+        if (Info.env.isActive) RemoveSystemSuDialog(this).show()
+    }
+
+    fun confirmRemoveSystemSu() {
+        MainDirections.actionFlashFragment(Const.Value.REMOVE_SYSTEM_SU, null).navigate()
     }
 
     fun requestInstallLocalModule(uri: Uri, displayName: String) {

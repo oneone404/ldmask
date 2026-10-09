@@ -45,47 +45,6 @@
                 android:textAllCaps="false"
                 tools:visibility="gone" />
 
-            <com.google.android.material.card.MaterialCardView
-                style="@style/WidgetFoundation.Card.Primary"
-                goneUnless="@{viewModel.noticeVisible}"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/l1"
-                android:layout_marginEnd="@dimen/l1"
-                android:layout_marginBottom="@dimen/l1"
-                android:focusable="false">
-
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-
-                    <TextView
-                        android:id="@+id/home_notice_content"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:padding="@dimen/l1"
-                        android:text="@string/home_notice_unofficial_magisk"
-                        android:textAppearance="@style/AppearanceFoundation.Caption.OnPrimary"
-                        app:layout_constraintEnd_toStartOf="@+id/home_notice_hide"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent" />
-
-                    <Button
-                        android:id="@+id/home_notice_hide"
-                        style="@style/WidgetFoundation.Button.Text.OnPrimary"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:onClick="@{() -> viewModel.hideNotice()}"
-                        android:text="@string/hide"
-                        android:textAllCaps="false"
-                        app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toTopOf="parent" />
-
-                </androidx.constraintlayout.widget.ConstraintLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
             <include
                 android:id="@+id/home_magisk_wrapper"
                 layout="@layout/include_home_magisk"

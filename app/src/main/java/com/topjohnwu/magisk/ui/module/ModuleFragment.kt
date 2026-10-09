@@ -2,6 +2,11 @@ package com.topjohnwu.magisk.ui.module
 
 import android.os.Bundle
 import android.view.View
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import androidx.core.view.MenuProvider
+import com.topjohnwu.magisk.core.Info
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.arch.BaseFragment
 import com.topjohnwu.magisk.arch.viewModel
@@ -12,7 +17,7 @@ import rikka.recyclerview.addInvalidateItemDecorationsObserver
 import rikka.recyclerview.addItemSpacing
 import rikka.recyclerview.fixEdgeEffect
 
-class ModuleFragment : BaseFragment<FragmentModuleMd2Binding>() {
+class ModuleFragment : BaseFragment<FragmentModuleMd2Binding>(), MenuProvider {
 
     override val layoutRes = R.layout.fragment_module_md2
     override val viewModel by viewModel<ModuleViewModel>()
@@ -40,5 +45,19 @@ class ModuleFragment : BaseFragment<FragmentModuleMd2Binding>() {
     }
 
     override fun onPreBind(binding: FragmentModuleMd2Binding) = Unit
+
+    override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.menu_module_ldmask, menu)
+    }
+
+    override fun onPrepareMenu(menu: Menu) {
+        menu.findItem(R.id.action_remove_system_su)?.isEnabled = Info.env.isActive
+    }
+
+    override fun onMenuItemSelected(item: MenuItem): Boolean {
+        if (item.itemId != R.id.action_remove_system_su) return false
+        viewModel.removeSystemSuPressed()
+        return true
+    }
 
 }

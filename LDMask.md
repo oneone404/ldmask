@@ -70,4 +70,22 @@ Periodic manager-update checking is disabled by default; opening the UI and
 pressing quick-install can still use the network. Non-custom manager update
 channels point to this fork's `update.json`, not upstream packages.
 
+## System su cleanup (v1.0.2)
+
+The Modules toolbar trash icon opens a confirmation naming exactly
+`/system/bin/su` and `/system/xbin/su`. It does not delete directories, follow
+target symlinks, erase `/data/adb`, remove modules, or reboot. It first verifies
+an independent working Magisk `su`/`magisk` path; if root depends on a target
+file it refuses. Missing targets are accepted. The independent root path must
+also be in the app's original PATH, to avoid losing bare `su` discovery when
+the manager is restarted. Read-only mounts may be remounted temporarily, with
+restoration in a trap and failures reported. Partial deletion
+is possible if the second target fails; there is no backup or automatic rollback.
+Execution uses the existing root shell and a 30-second BusyBox timeout, sharing
+the module-install gate. Process kill or a hung kernel can prevent restoration;
+do not interpret this as an unconditional root-preservation guarantee.
+
+The Home app-install button refreshes update metadata at click time. It updates
+the manager APK, not automatically the installed root environment or modules.
+
 No new background service or polling is required for the quick-install feature.
