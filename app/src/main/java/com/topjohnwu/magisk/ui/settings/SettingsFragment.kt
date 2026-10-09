@@ -19,7 +19,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsMd2Binding>() {
     override fun onStart() {
         super.onStart()
 
-        activity?.title = resources.getString(R.string.settings)
+        activity?.title = resources.getString(R.string.ldmask_configuration)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

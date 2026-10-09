@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
+        <import type="com.topjohnwu.magisk.R" />
 
         <import type="com.topjohnwu.magisk.core.Info" />
 
@@ -80,77 +81,34 @@
                 tools:constraint_referenced_ids="home_magisk_icon,home_magisk_title,home_magisk_button" />
 
             <HorizontalScrollView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fadingEdgeLength="@dimen/l1"
-                android:requiresFadingEdge="horizontal"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:scrollbars="none"
                 app:layout_constraintTop_toBottomOf="@+id/home_magisk_title_barrier">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <androidx.constraintlayout.widget.ConstraintLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content">
-
-                        <LinearLayout
-                            android:id="@+id/home_magisk_installed_version"
-                            style="@style/W.Home.Item.Top"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toTopOf="parent">
-
-                            <TextView
-                                style="@style/W.Home.ItemContent"
-                                android:text="@string/home_installed_version" />
-
-                            <TextView
-                                style="@style/W.Home.ItemContent.Right"
-                                android:text="@{viewModel.magiskInstalledVersion}"
-                                tools:text="22.0 (22000)" />
-
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:id="@+id/home_device_details_zygisk"
-                            style="@style/W.Home.Item"
-                            app:layout_constraintStart_toStartOf="@+id/home_magisk_installed_version"
-                            app:layout_constraintTop_toBottomOf="@+id/home_magisk_installed_version">
-
-                            <TextView
-                                style="@style/W.Home.ItemContent"
-                                android:text="@string/zygisk" />
-
-                            <TextView
-                                style="@style/W.Home.ItemContent.Right"
-                                android:text="@{Info.isZygiskEnabled ? @string/yes : @string/no}"
-                                tools:text="Yes" />
-
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:id="@+id/home_device_details_ramdisk"
-                            style="@style/W.Home.Item.Bottom"
-                            app:layout_constraintStart_toStartOf="@+id/home_magisk_installed_version"
-                            app:layout_constraintTop_toBottomOf="@+id/home_device_details_zygisk">
-
-                            <TextView
-                                style="@style/W.Home.ItemContent"
-                                android:text="Ramdisk" />
-
-                            <TextView
-                                style="@style/W.Home.ItemContent.Right"
-                                android:text="@{Info.ramdisk ? @string/yes : @string/no }"
-                                tools:text="Yes" />
-
-                        </LinearLayout>
-
-                    </androidx.constraintlayout.widget.ConstraintLayout>
-
+                <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:paddingStart="@dimen/l1"
+                    android:paddingEnd="@dimen/l1" android:paddingTop="@dimen/l_75"
+                    android:paddingBottom="@dimen/l_75">
+                    <TextView android:id="@+id/home_magisk_installed_version"
+                        style="@style/Widget.LDMask.HomeInfo" android:text="@{viewModel.magiskInstalledVersion}" />
+                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical">
+                        <TextView style="@style/Widget.LDMask.HomeInfo" android:text="@string/zygisk" />
+                        <androidx.appcompat.widget.AppCompatImageView
+                            android:layout_width="18dp" android:layout_height="18dp" android:layout_marginStart="8dp"
+                            android:contentDescription="@{Info.isZygiskEnabled ? @string/yes : @string/no}"
+                            app:srcCompat="@{Info.isZygiskEnabled ? R.drawable.ic_check_md2 : R.drawable.ic_close_md2}"
+                            app:tint="?colorPrimary" />
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical">
+                        <TextView style="@style/Widget.LDMask.HomeInfo" android:text="@string/ldmask_ramdisk" />
+                        <androidx.appcompat.widget.AppCompatImageView
+                            android:layout_width="18dp" android:layout_height="18dp" android:layout_marginStart="8dp"
+                            android:contentDescription="@{Info.ramdisk ? @string/yes : @string/no}"
+                            app:srcCompat="@{Info.ramdisk ? R.drawable.ic_check_md2 : R.drawable.ic_close_md2}"
+                            app:tint="?colorPrimary" />
+                    </LinearLayout>
                 </LinearLayout>
-
             </HorizontalScrollView>
 
         </androidx.constraintlayout.widget.ConstraintLayout>

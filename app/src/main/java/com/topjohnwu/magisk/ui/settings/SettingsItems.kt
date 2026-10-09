@@ -23,6 +23,7 @@ import com.topjohnwu.magisk.databinding.DialogSettingsDownloadPathBinding
 import com.topjohnwu.magisk.databinding.DialogSettingsUpdateChannelBinding
 import com.topjohnwu.magisk.databinding.set
 import com.topjohnwu.magisk.utils.asText
+import com.topjohnwu.magisk.utils.TextHolder
 import com.topjohnwu.magisk.view.MagiskDialog
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
@@ -221,9 +222,7 @@ object Magisk : BaseSettingsItem.Section() {
 
 object Zygisk : BaseSettingsItem.Toggle() {
     override val title = R.string.zygisk.asText()
-    override val description get() =
-        if (mismatch) R.string.reboot_apply_change.asText()
-        else R.string.settings_zygisk_summary.asText()
+    override val description get() = TextHolder.EMPTY
     override var value
         get() = Config.zygisk
         set(value) {
@@ -238,13 +237,19 @@ object Zygisk : BaseSettingsItem.Toggle() {
 
 object DenyList : BaseSettingsItem.Toggle() {
     override val title = R.string.settings_magiskhide_title.asText()
-    override val description get() =
-        if (Info.sulist) R.string.settings_sulist_enforced.asText()
-        else R.string.settings_magiskhide_summary.asText()
+    override val description get() = TextHolder.EMPTY
 
-    override var value = Config.denyList
+    override fun refresh() {
+        // The post-install preset also changes the persisted setting.
+        currentValue = Config.denyList
+        notifyPropertyChanged(BR.checked)
+    }
+
+    private var currentValue = Config.denyList
+    override var value
+        get() = currentValue
         set(value) {
-            field = value
+            currentValue = value
             val cmd = if (value) "enable" else "disable"
             Shell.cmd("magisk magiskhide $cmd").submit { result ->
                 if (result.isSuccess) {
@@ -253,7 +258,7 @@ object DenyList : BaseSettingsItem.Toggle() {
                     DenyListConfig.refresh()
                     SuList.refresh()
                 } else {
-                    field = !value
+                    currentValue = !value
                     notifyPropertyChanged(BR.checked)
                 }
             }
@@ -294,9 +299,7 @@ object DenyListConfig : BaseSettingsItem.Blank() {
     var status = Shell.cmd("magisk magiskhide sulist").exec().isSuccess;
 
     override val title get() = R.string.settings_hidelist_config_title.asText()
-    override val description get() =
-        if (Info.sulist) R.string.settings_sulist_config_summary.asText()
-        else R.string.settings_hidelist_config_summary.asText()
+    override val description get() = TextHolder.EMPTY
 
 
     override fun refresh() {

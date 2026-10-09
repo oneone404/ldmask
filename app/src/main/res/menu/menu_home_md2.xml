@@ -11,7 +11,7 @@
     <item
         android:id="@+id/action_settings"
         android:icon="@drawable/ic_settings_md2"
-        android:title="@string/settings"
+        android:title="@string/ldmask_configuration"
         app:showAsAction="ifRoom" />
 
 </menu>

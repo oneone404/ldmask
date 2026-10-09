@@ -82,86 +82,28 @@
                 tools:constraint_referenced_ids="home_manager_icon,home_manager_title,home_manager_button" />
 
             <HorizontalScrollView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fadingEdgeLength="@dimen/l1"
-                android:requiresFadingEdge="horizontal"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:scrollbars="none"
                 app:layout_constraintTop_toBottomOf="@+id/home_manager_title_barrier">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <androidx.constraintlayout.widget.ConstraintLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content">
-
-                        <LinearLayout
-                            android:id="@+id/home_manager_latest_version"
-                            style="@style/W.Home.Item.Top"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toTopOf="parent">
-
-                            <TextView
-                                style="@style/W.Home.ItemContent"
-                                android:text="@string/home_latest_version" />
-
-                            <TextView
-                                style="@style/W.Home.ItemContent.Right"
-                                android:text="@{viewModel.managerRemoteVersion}"
-                                tools:text="22.0 (22000) (16)" />
-
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:id="@+id/home_manager_installed_version"
-                            style="@style/W.Home.Item"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toBottomOf="@+id/home_manager_latest_version">
-
-                            <TextView
-                                style="@style/W.Home.ItemContent"
-                                android:text="@string/home_installed_version" />
-
-                            <TextView
-                                style="@style/W.Home.ItemContent.Right"
-                                android:text="@{viewModel.managerInstalledVersion}"
-                                tools:text="22.0 (22000) (16)" />
-
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:id="@+id/home_manager_internal_connection"
-                            style="@style/W.Home.Item.Bottom"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toBottomOf="@+id/home_manager_installed_version">
-
-                            <TextView
-                                style="@style/W.Home.ItemContent"
-                                android:text="@string/home_package" />
-
-                            <TextView
-                                android:id="@+id/home_manager_extra_connection_value"
-                                style="@style/W.Home.ItemContent.Right"
-                                android:text="@{context.packageName}"
-                                tools:text="com.topjohnwu.magisk" />
-
-                        </LinearLayout>
-
-                    </androidx.constraintlayout.widget.ConstraintLayout>
-
-                    <ProgressBar
-                        style="@style/WidgetFoundation.ProgressBar"
+                <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:paddingStart="@dimen/l1"
+                    android:paddingEnd="@dimen/l1" android:paddingTop="@dimen/l_75"
+                    android:paddingBottom="@dimen/l_75">
+                    <TextView android:id="@+id/home_manager_latest_version"
+                        style="@style/Widget.LDMask.HomeInfo"
+                        gone="@{viewModel.appState != State.OUTDATED}"
+                        android:text="@{viewModel.managerRemoteVersion}" />
+                    <TextView android:id="@+id/home_manager_installed_version"
+                        style="@style/Widget.LDMask.HomeInfo"
+                        android:text="@{viewModel.managerInstalledVersion}" />
+                    <TextView android:id="@+id/home_manager_extra_connection_value"
+                        style="@style/Widget.LDMask.HomeInfo"
+                        android:text="@{context.packageName}" />
+                    <ProgressBar style="@style/WidgetFoundation.ProgressBar"
                         gone="@{viewModel.stateManagerProgress == 0 || viewModel.stateManagerProgress == 100}"
-                        android:layout_width="match_parent"
-                        android:layout_gravity="bottom"
-                        android:max="100"
+                        android:layout_width="match_parent" android:max="100"
                         android:progress="@{viewModel.stateManagerProgress}" />
-
                 </LinearLayout>
-
             </HorizontalScrollView>
 
         </androidx.constraintlayout.widget.ConstraintLayout>

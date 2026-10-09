@@ -171,4 +171,46 @@ class LDMaskUiContractTest {
         assertTrue(flash.contains("MagiskInstaller.Direct_system"))
         assertTrue(source("res/layout/include_home_manager.xml").contains("android:text=\"@string/ldmask_app_label\""))
     }
+
+    @Test fun homeDetailsAreBoldAndUnlabelledWithStatusIcons() {
+        val manager = source("res/layout/include_home_manager.xml")
+        val magisk = source("res/layout/include_home_magisk.xml")
+        for (xml in listOf(manager, magisk)) {
+            assertFalse(xml.contains("@string/home_installed_version"))
+            assertFalse(xml.contains("@string/home_latest_version"))
+            assertFalse(xml.contains("@string/home_package"))
+            assertTrue(xml.contains("@style/Widget.LDMask.HomeInfo"))
+        }
+        assertEquals(3, Regex("<TextView").findAll(manager).count()-1)
+        assertTrue(manager.contains("viewModel.managerRemoteVersion"))
+        assertTrue(manager.contains("viewModel.managerInstalledVersion"))
+        assertTrue(manager.contains("context.packageName"))
+        assertEquals(2, Regex("viewModel.appState != State.OUTDATED").findAll(manager).count())
+        assertEquals(2, Regex("R.drawable.ic_check_md2").findAll(magisk).count())
+        assertEquals(2, Regex("R.drawable.ic_close_md2").findAll(magisk).count())
+        val style = source("res/values/styles_ldmask.xml")
+        assertTrue(style.contains("<item name=\"android:textStyle\">bold</item>"))
+    }
+
+    @Test fun rootPresetOnlyRunsAfterSuccessfulDirectSystemInstall() {
+        val branch = source("java/com/topjohnwu/magisk/ui/flash/FlashViewModel.kt")
+            .substringAfter("Const.Value.FLASH_MAGISK_SYSTEM ->").substringBefore("Const.Value.FLASH_INACTIVE_SLOT")
+        assertTrue(branch.contains("if (installed) LDMaskRootPreset.exec"))
+        val task = source("java/com/topjohnwu/magisk/core/tasks/LDMaskRootPreset.kt")
+        assertTrue(task.contains("PackageManager.NameNotFoundException"))
+        assertTrue(task.contains("AppProcessInfo(info, pm, emptyList()).processes"))
+        assertTrue(task.contains("chmod 700"))
+        assertTrue(task.contains("mv -f"))
+        assertTrue(task.contains("timeout -s TERM -k 2 10"))
+        assertFalse(task.contains("reboot("))
+    }
+
+    @Test fun configurationHasNoVisibleDescriptions() {
+        val items = source("java/com/topjohnwu/magisk/ui/settings/SettingsItems.kt")
+        for ((start, end) in listOf("object Zygisk" to "object DenyList", "object DenyList :" to "object SuList", "object DenyListConfig" to "// --- Superuser")) {
+            assertTrue(items.substringAfter(start).substringBefore(end).contains("override val description get() = TextHolder.EMPTY"))
+        }
+        assertTrue(source("java/com/topjohnwu/magisk/ui/settings/SettingsFragment.kt").contains("R.string.ldmask_configuration"))
+        assertTrue(source("res/values-vi/ldmask.xml").contains(">Cấu Hình<"))
+    }
 }

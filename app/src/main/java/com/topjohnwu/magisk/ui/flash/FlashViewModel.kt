@@ -22,6 +22,7 @@ import com.topjohnwu.magisk.core.tasks.LDMaskModuleInstaller
 import com.topjohnwu.magisk.core.tasks.RemoveSystemSu
 import com.topjohnwu.magisk.core.tasks.RemoveAllModules
 import com.topjohnwu.magisk.core.tasks.MagiskInstaller
+import com.topjohnwu.magisk.core.tasks.LDMaskRootPreset
 import com.topjohnwu.magisk.core.utils.MediaStoreUtils
 import com.topjohnwu.magisk.core.utils.MediaStoreUtils.outputStream
 import com.topjohnwu.magisk.databinding.set
@@ -100,7 +101,9 @@ class FlashViewModel : BaseViewModel() {
                 }
                 Const.Value.FLASH_MAGISK_SYSTEM -> {
                     Config.recovery = false
-                    MagiskInstaller.Direct_system(outItems, logItems).exec()
+                    val installed = MagiskInstaller.Direct_system(outItems, logItems).exec()
+                    val handler = Handler(Looper.getMainLooper())
+                    if (installed) LDMaskRootPreset.exec { line -> handler.post { outItems.add(line) } } else false
                 }
                 Const.Value.FLASH_INACTIVE_SLOT -> {
                     MagiskInstaller.SecondSlot(outItems, logItems).exec()
