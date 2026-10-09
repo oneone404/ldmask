@@ -26,11 +26,7 @@ class ModuleConfigViewModel : BaseViewModel() {
             try {
                 val next = ModuleUiRepository.load(moduleId)
                 draft.clear(); draft.putAll(next.settings.values()); snapshot.value = next
-                message.value = when {
-                    !next.valid -> ""
-                    next.pending -> "Module đang chờ áp dụng sau khi reboot; cấu hình vẫn được lưu riêng."
-                    else -> "Bật/tắt và log áp dụng qua inotify. Thời gian chờ áp dụng ở lần boot tiếp theo."
-                }
+                message.value = ""
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { snapshot.value = null; message.value = e.message.orEmpty() }
             finally { busy.value = false }
@@ -46,7 +42,7 @@ class ModuleConfigViewModel : BaseViewModel() {
         viewModelScope.launch {
             try {
                 snapshot.value = ModuleUiRepository.save(moduleId, old, values)
-                message.value = "Đã lưu. Bật/tắt và log áp dụng ngay; thời gian chờ áp dụng ở lần boot tiếp theo."
+                message.value = ""
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { message.value = "${e.message}. Nếu dữ liệu đã đổi, bấm Tải Lại trước khi lưu." }
             finally { busy.value = false }

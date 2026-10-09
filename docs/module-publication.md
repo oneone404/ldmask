@@ -24,7 +24,7 @@ retires that module on a subsequent successful quick install of another module.
 Nothing is removed merely by opening/cancelling the picker or failing a download,
 validation or install. An empty catalog cannot trigger an all-module wipe.
 Actual removal/uninstall finishes on explicit reboot; unrelated external data is
-not recursively deleted. The picker explains this behavior before confirmation.
+not recursively deleted. The picker has no informational note (since v1.0.9).
 
 For a new release, stage the APK/available ZIPs/integrity metadata as a draft,
 verify uploaded hashes, then publish latest. Do not silently replace published ZIPs.

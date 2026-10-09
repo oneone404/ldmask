@@ -4,7 +4,6 @@
     <string name="ldmask_choose_modules">Choose Modules</string>
     <string name="ldmask_configuration">Configuration</string>
     <string name="ldmask_login_configuration">LDLogin Configuration</string>
-    <string name="ldmask_cleanup_unlisted_hint">After successful installation, modules outside the available server list will be removed on reboot.</string>
     <string name="ldmask_remove_magisk">Remove Magisk</string>
     <string name="ldmask_ramdisk" translatable="false">Ramdisk</string>
     <string name="ldmask_app_label" translatable="false">LDMask</string>

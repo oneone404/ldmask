@@ -257,8 +257,24 @@ class LDMaskUiContractTest {
         assertTrue(fragment.contains("if (field.key == \"enabled\") \"LDLogin\""))
         assertFalse(fragment.contains("chooseGame"))
         val vm = source("java/com/topjohnwu/magisk/ui/module/ModuleConfigViewModel.kt")
-        assertTrue(vm.contains("!next.valid -> \"\""))
+        assertEquals(2, Regex("message.value = \"\"").findAll(vm).count())
         assertFalse(vm.contains("Thiếu hoặc hỏng cấu hình"))
+    }
+
+    @Test fun configurationAndModulePickerHaveNoInformationalNotes() {
+        val vm = source("java/com/topjohnwu/magisk/ui/module/ModuleConfigViewModel.kt")
+        assertFalse(vm.contains("boot tiếp theo"))
+        assertFalse(vm.contains("sau khi reboot"))
+        assertFalse(vm.contains("Đã lưu."))
+        assertTrue(vm.contains("catch (e: Exception)"))
+        val dialog = source("java/com/topjohnwu/magisk/dialog/ChooseModulesDialog.kt")
+        assertFalse(dialog.contains("TextView"))
+        assertFalse(dialog.contains("ldmask_cleanup_unlisted_hint"))
+        for (locale in listOf("values", "values-vi"))
+            assertFalse(source("res/$locale/ldmask.xml").contains("ldmask_cleanup_unlisted_hint"))
+        val labels = source("res/values-vi/ldmask.xml")
+        assertTrue(labels.contains(">Xoá All Module<"))
+        assertTrue(labels.contains(">Xoá Su Bin/Xbin<"))
     }
 
     @Test fun unlistedCleanupIsFlagOnlyAndUsesTwoPassGuards() {
