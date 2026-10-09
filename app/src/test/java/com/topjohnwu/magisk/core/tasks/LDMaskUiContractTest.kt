@@ -234,4 +234,38 @@ class LDMaskUiContractTest {
         assertFalse(card.contains("module_notice_text"))
         assertFalse(source("res/layout/fragment_home_md2.xml").contains("android:text=\"@string/uninstall_magisk_title\""))
     }
+
+    @Test fun configurationActionPrecedesModuleSwitch() {
+        val card = source("res/layout/item_module_md2.xml")
+        assertTrue(card.indexOf("@+id/module_config") >= 0)
+        assertTrue(card.indexOf("@+id/module_config") < card.indexOf("@+id/module_indicator"))
+    }
+
+    @Test fun homeRemovalHasShortLabelAndOriginalConfirmationAction() {
+        val home = source("res/layout/fragment_home_md2.xml")
+        assertTrue(home.contains("android:text=\"@string/ldmask_remove_magisk\""))
+        assertTrue(home.contains("@drawable/ic_delete_md2"))
+        assertTrue(home.contains("viewModel.onDeletePressed()"))
+        assertTrue(source("res/values-vi/ldmask.xml").contains(">Gỡ Magisk<"))
+    }
+
+    @Test fun nativeConfigurationUsesAppSettingsStyle() {
+        val row = source("res/layout/item_module_config_field.xml")
+        assertTrue(row.contains("@style/WidgetFoundation.Card"))
+        assertTrue(row.contains("@style/AppearanceFoundation.Body"))
+        assertTrue(row.contains("@dimen/l1"))
+        assertTrue(row.contains("config_field_switch"))
+        assertTrue(row.contains("config_field_number"))
+        val fragment = source("java/com/topjohnwu/magisk/ui/module/ModuleConfigFragment.kt")
+        assertTrue(fragment.contains("inflate(R.layout.item_module_config_field"))
+        assertFalse(fragment.contains("radius ="))
+        assertFalse(fragment.contains("TextInputLayout"))
+    }
+
+    @Test fun vietnameseStandaloneInstallationLabelsUseConfiguration() {
+        val strings = source("res/values-vi/strings.xml")
+        for (key in listOf("settings", "install", "home_installed_version", "flash_screen_title"))
+            assertTrue(strings.contains("<string name=\"$key\">Cấu Hình</string>"))
+        assertFalse(Regex(">Cài đặt<", RegexOption.IGNORE_CASE).containsMatchIn(strings))
+    }
 }

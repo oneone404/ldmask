@@ -1,0 +1,27 @@
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/WidgetFoundation.Card"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical"
+        android:minHeight="64dp" android:paddingStart="@dimen/l1" android:paddingEnd="@dimen/l1">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical"
+            android:paddingTop="@dimen/l1" android:paddingBottom="@dimen/l1">
+            <TextView android:id="@+id/config_field_label" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textStyle="bold"
+                android:textAppearance="@style/AppearanceFoundation.Body" />
+            <TextView android:id="@+id/config_field_description" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:visibility="gone"
+                android:textAppearance="@style/AppearanceFoundation.Tiny.Variant" />
+        </LinearLayout>
+        <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/config_field_switch"
+            android:layout_width="wrap_content" android:layout_height="48dp"
+            android:layout_marginStart="16dp" android:visibility="gone" />
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/config_field_number"
+            android:layout_width="96dp" android:layout_height="48dp" android:layout_marginStart="16dp"
+            android:inputType="number" android:singleLine="true" android:maxLength="9"
+            android:gravity="center" android:textStyle="bold" android:visibility="gone"
+            android:textAppearance="@style/AppearanceFoundation.Body" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -3,6 +3,7 @@
     <string name="ldmask_reload">Reload</string>
     <string name="ldmask_choose_modules">Choose Modules</string>
     <string name="ldmask_configuration">Configuration</string>
+    <string name="ldmask_remove_magisk">Remove Magisk</string>
     <string name="ldmask_ramdisk" translatable="false">Ramdisk</string>
     <string name="ldmask_app_label" translatable="false">LDMask</string>
     <string name="ldmask_system_install_unavailable">Direct /system installation requires existing root and an environment not boot-image patched. No automatic install-method fallback.</string>

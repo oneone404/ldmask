@@ -11,12 +11,12 @@
                 android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
                 android:text="@{item.item.name}" android:textStyle="bold" android:maxLines="1" android:ellipsize="end"
                 android:textAppearance="@style/AppearanceFoundation.Body" />
+            <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/module_config" style="@style/Widget.LDMask.IconAction"
+                goneUnless="@{item.hasConfiguration}" android:enabled="@{!item.removed}" android:contentDescription="@string/ldmask_configuration"
+                android:onClick="@{() -> viewModel.configurePressed(item)}" app:tint="?colorPrimary" app:srcCompat="@drawable/ic_settings_md2" />
             <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/module_indicator"
                 android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="8dp"
                 android:contentDescription="@{item.item.name}" android:checked="@={item.enabled}" android:enabled="@{!item.removed}" />
-            <androidx.appcompat.widget.AppCompatImageButton style="@style/Widget.LDMask.IconAction"
-                goneUnless="@{item.hasConfiguration}" android:enabled="@{!item.removed}" android:contentDescription="@string/ldmask_configuration"
-                android:onClick="@{() -> viewModel.configurePressed(item)}" app:tint="?colorPrimary" app:srcCompat="@drawable/ic_settings_md2" />
             <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/module_update" style="@style/Widget.LDMask.IconAction"
                 goneUnless="@{item.showUpdate}" android:enabled="@{item.updateReady}" android:contentDescription="@string/install"
                 android:onClick="@{() -> viewModel.downloadPressed(item.item.updateInfo)}" app:tint="?colorPrimary" app:srcCompat="@drawable/ic_install" />

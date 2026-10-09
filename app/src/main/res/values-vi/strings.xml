@@ -4,8 +4,8 @@
     <string name="modules">Mô-đun</string>
     <string name="superuser">Superuser</string>
     <string name="logs">Nhật ký</string>
-    <string name="settings">Cài đặt</string>
-    <string name="install">Cài đặt</string>
+    <string name="settings">Cấu Hình</string>
+    <string name="install">Cấu Hình</string>
     <string name="section_home">Trang chủ</string>
     <string name="section_theme">Chủ đề</string>
     <string name="denylist">Danh sách loại trừ</string>
@@ -24,7 +24,7 @@
     <string name="home_support_title">Hỗ trợ chúng tôi</string>
     <string name="home_item_source">Nguồn</string>
     <string name="home_support_content">Magisk sẽ, và luôn luôn là, miễn phí và mã nguồn mở. Tuy nhiên, bạn có thể cho chúng tôi thấy rằng bạn quan tâm bằng cách gửi một khoản đóng góp nhỏ.</string>
-    <string name="home_installed_version">Cài đặt</string>
+    <string name="home_installed_version">Cấu Hình</string>
     <string name="home_latest_version">Mới nhất</string>
     <string name="invalid_update_channel">Kênh cập nhật không hợp lệ</string>
     <string name="uninstall_magisk_title">Gỡ cài đặt Magisk</string>
@@ -47,7 +47,7 @@
     <string name="select_patch_file">Chọn và vá tệp</string>
     <string name="patch_file_msg">Chọn đĩa ảnh (*.img) hoặc tệp tarfile ODIN (*.tar)</string>
     <string name="reboot_delay_toast">Khởi động lại sau 5 giây…</string>
-    <string name="flash_screen_title">Cài đặt</string>
+    <string name="flash_screen_title">Cấu Hình</string>
 
     <!--Superuser-->
     <string name="su_request_title">Yêu cầu Superuser</string>
