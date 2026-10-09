@@ -1,0 +1,4 @@
+version=LDMask-1.0.13-ldmenu-test5
+outdir=out
+ldmenuLoaderExperiment=true
+ldmenuTraceExperiment=true

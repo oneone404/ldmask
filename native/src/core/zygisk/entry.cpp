@@ -12,6 +12,7 @@
 
 #include "zygisk.hpp"
 #include "module.hpp"
+#include "namespace_fd.hpp"
 
 using namespace std;
 
@@ -59,12 +60,12 @@ int remote_request_umount() {
     if (int fd = zygisk_request(ZygiskRequest::REVERT_UNMOUNT); fd >= 0) {
         // directly open fd path from magisk proc without recv_fd
         auto ns_path = read_string(fd);
-        auto clean_ns = xopen(ns_path.data(), O_RDONLY);
+        auto clean_ns = ns_path.empty() ? -1 : xopen(ns_path.data(), O_RDONLY | O_CLOEXEC);
         LOGD("denylist: set to clean ns [%s] fd=[%d]\n", ns_path.data(), clean_ns);
-        if (clean_ns > 0) xsetns(clean_ns, CLONE_NEWNS);
-        close(clean_ns);
+        int res = clean_ns >= 0 ? xsetns(clean_ns, CLONE_NEWNS) : -1;
+        if (clean_ns >= 0) close(clean_ns);
         close(fd);
-        return 0;
+        return res;
     }
     return -1;
 }
@@ -139,6 +140,7 @@ static void connect_companion(int client, bool is_64_bit) {
 }
 
 static int clean_ns64 = -1, clean_ns32 = -1;
+static pthread_mutex_t clean_ns_lock = PTHREAD_MUTEX_INITIALIZER;
 
 extern bool uid_granted_root(int uid);
 static void get_process_info(int client, const sock_cred *cred) {
@@ -223,27 +225,31 @@ static void mount_magisk_to_remote(int client, const sock_cred *cred) {
 }
 
 static int get_clean_ns(pid_t pid) {
-    int pipe_fd[2];
-    pipe(pipe_fd);
-    int child = xfork();
-    if (!child) {
-        switch_mnt_ns(pid);
-        xunshare(CLONE_NEWNS);
-        revert_unmount();
-        write_int(pipe_fd[1], 0);
-        read_int(pipe_fd[0]);
-        exit(0);
-    } else {
-        read_int(pipe_fd[0]);
-        char buf[PATH_MAX];
-        ssprintf(buf, PATH_MAX, "/proc/%d/ns/mnt", child);
-        auto clean_ns = (child > 0)? open(buf, O_RDONLY) : -1;
-        write_int(pipe_fd[1], 0);
-        close(pipe_fd[0]);
-        close(pipe_fd[1]);
-        if (child > 0) waitpid(child, nullptr, 0);
-        return clean_ns;
+    int sockets[2];
+    if (socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, sockets) != 0) {
+        PLOGE("clean namespace socketpair");
+        return -1;
     }
+    // Same detached-worker mechanism already used by the daemon's unmount
+    // helpers. Init reaps it; there is no indefinite ACK/waitpid handshake.
+    int child = fork_dont_care();
+    if (child == 0) {
+        close(sockets[0]);
+        int ns = -1;
+        if (switch_mnt_ns(pid) == 0 && unshare(CLONE_NEWNS) == 0) {
+            revert_unmount();
+            ns = open("/proc/self/ns/mnt", O_RDONLY | O_CLOEXEC);
+        }
+        bool sent = namespace_fd::send(sockets[1], ns);
+        if (ns >= 0) close(ns);
+        close(sockets[1]);
+        _exit(sent ? 0 : 1);
+    }
+    close(sockets[1]);
+    int ns = child > 0 ? namespace_fd::receive(sockets[0], 3000) : -1;
+    close(sockets[0]);
+    if (ns < 0) LOGE("clean namespace creation failed or timed out\n");
+    return ns;
 }
 
 static void get_moddir(int client) {
@@ -276,7 +282,11 @@ void zygisk_handler(int client, const sock_cred *cred) {
         mount_magisk_to_remote(client, cred);
         break;
     case ZygiskRequest::REVERT_UNMOUNT: {
-        get_exe(cred->pid, buf, sizeof(buf));
+        if (!get_exe(cred->pid, buf, sizeof(buf))) {
+            write_string(client, "");
+            break;
+        }
+        mutex_guard g(clean_ns_lock);
         int clean_ns = -1;
         if (su_bin_fd >= 0) {
             if (str_ends(buf, "64")) {
@@ -290,7 +300,8 @@ void zygisk_handler(int client, const sock_cred *cred) {
             }
         }
         // send path to zygote instead send_fd
-        write_string(client, "/proc/"s + to_string(getpid()) + "/fd/" + to_string(clean_ns));
+        write_string(client, clean_ns >= 0 ?
+            "/proc/"s + to_string(getpid()) + "/fd/" + to_string(clean_ns) : "");
         break;
     }
     default:
@@ -307,9 +318,12 @@ void reset_zygisk(bool restore) {
         close(zygiskd_sockets[0]);
         close(zygiskd_sockets[1]);
         zygiskd_sockets[0] = zygiskd_sockets[1] = -1;
-        close(clean_ns64);
-        close(clean_ns32);
-        clean_ns64 = clean_ns32 = -1;
+        {
+            mutex_guard g(clean_ns_lock);
+            close(clean_ns64);
+            close(clean_ns32);
+            clean_ns64 = clean_ns32 = -1;
+        }
     }
     if (restore) {
         zygote_start_count = 1;

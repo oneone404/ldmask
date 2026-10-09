@@ -7,6 +7,16 @@ The baseline was successfully rooted on LD-1 by the user before adding the
 quick-module installer. Root/SU/Zygisk/MagiskHide algorithms are not changed by
 that UI feature. This is not an official HuskyDG or topjohnwu release.
 
+Since v1.0.13, native MagiskHide namespace creation is repaired: the old single
+pipe let the worker consume its own readiness message and exit while the daemon
+waited forever. This was captured on LD1 during a VNG startup timeout. A detached
+worker now transfers the open namespace FD through an atomic socketpair packet;
+the FD survives worker exit, the receive has a 3-second deadline, and namespace
+cache initialization/reset is serialized. No additional resident service/polling
+and no disabling Hide to make the game launch. Failed creation/setns is reported
+as failure rather than falsely returning success. Root hiding is not guaranteed
+undetectable: LDMenu and its loader can still appear in game/companion maps.
+
 ## Source provenance and license
 
 Based on community snapshot https://github.com/zcg9783/KitsuneMagisk1 at
@@ -156,8 +166,18 @@ with its separate native bot switch labelled LDLogin. Missing/bad config stays
 OFF/30/no-log without the old notice. The switch applies after Save while the bot
 service is running; Magisk's module switch still has normal reboot semantics.
 
-LDMenu's two ABI libraries are unchanged opaque binaries; the surrounding module
+At v1.0.8, LDMenu's two ABI libraries were unchanged opaque binaries; the surrounding module
 ID/metadata/install migration changes do not prove runtime compatibility. Validate
 its live menu after reboot before cloning LD. Build LDLogin with
 `module-src/ldlogin/build.ps1` (Android NDK r30, x86_64 Android API 28), then package
 with `tools/package-modules.ps1`; it verifies the original LDMenu ZIP hash.
+
+## LDMenu pathname/metadata integration (local v1.0.14 test)
+
+Build the ARM wrapper with `module-src/ldmenu/build.ps1` before packaging modules.
+LDMenu v1.2 wraps the retained opaque ARM dependency; x86_64 remains unchanged.
+The new APK/core and module are paired: installing only the APK does not update
+the core or module. Direct-system core install and explicit LD reboot are needed.
+The online catalog is not changed by local builds. See
+`tests/VERIFICATION-v1.0.14.md` for hashes, build validation and live-test limits.
+Reduced LDMenu names/paths are not a guarantee of universal root invisibility.

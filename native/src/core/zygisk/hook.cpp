@@ -16,11 +16,24 @@
 
 #include <base.hpp>
 #include <consts.hpp>
+#include <flags.h>
 
 #include "zygisk.hpp"
 #include "memory.hpp"
 #include "module.hpp"
 #include "solist.hpp"
+#ifdef LDMENU_HIDE_EXPERIMENT
+#include <android/log.h>
+#include <fcntl.h>
+#include "ldmenu_remap.hpp"
+#endif
+#ifdef LDMENU_LOADER_EXPERIMENT
+#include <android/log.h>
+#include "ldmenu_fd.hpp"
+#endif
+#ifdef LDMENU_TRACE_EXPERIMENT
+#include "ldmenu_trace.hpp"
+#endif
 
 using namespace std;
 using jni_hook::hash_map;
@@ -60,6 +73,9 @@ vector<tuple<dev_t, ino_t, const char *, void **>> *plt_hook_list;
 map<string, vector<JNINativeMethod>, StringCmp> *jni_hook_list;
 hash_map<xstring, tree_map<xstring, tree_map<xstring, void *>>> *jni_method_map;
 bool should_unmap_zygisk = false;
+#ifdef LDMENU_LOADER_EXPERIMENT
+bool ldmenu_loader_pinned = false;
+#endif
 
 // Current context
 HookContext *g_ctx;
@@ -138,6 +154,196 @@ struct HookContext {
     bool plt_hook_commit();
 };
 
+#if defined(LDMENU_LOADER_EXPERIMENT) && defined(__x86_64__)
+ldmenu_loader_trial::Load ldmenu_old_load = nullptr;
+ldmenu_loader_trial::LoadExt ldmenu_old_load_ext = nullptr;
+void *(*ldmenu_old_mmap)(void *, size_t, int, int, int, off_t) = nullptr;
+static void ldmenu_fork_prepare() { pthread_mutex_lock(&ldmenu_loader_trial::lock); }
+static void ldmenu_fork_resume() { pthread_mutex_unlock(&ldmenu_loader_trial::lock); }
+static bool ldmenu_fork_guard() {
+    static bool ready = false;
+    if (ready) return true;
+    if (pthread_atfork(ldmenu_fork_prepare, ldmenu_fork_resume, ldmenu_fork_resume) != 0)
+        return false;
+    ready = true;
+    // Registered atfork callbacks also require the backing image to stay alive.
+    ldmenu_loader_pinned = true;
+    return true;
+}
+
+static void *ldmenu_mmap(void *addr, size_t size, int prot, int flags, int fd, off_t offset) {
+    int copy = -1;
+    if (fd >= 0 && (flags & MAP_PRIVATE) && !(flags & MAP_ANONYMOUS)) {
+        char link[64], path[512];
+        ssprintf(link, sizeof(link), "/proc/self/fd/%d", fd);
+        ssize_t n = readlink(link, path, sizeof(path) - 1);
+        if (n > 0 && n < sizeof(path) - 1) {
+            path[n] = 0;
+            if (ldmenu_trial::target(path)) {
+                bool created;
+                copy = ldmenu_loader_trial::capture_file(nullptr, &created, fd);
+                if (copy >= 0 && g_ctx) g_ctx->exempt_fd(copy);
+            }
+        }
+    }
+    void *mapped = ldmenu_old_mmap(addr, size, prot, flags, copy >= 0 ? copy : fd, offset);
+    if (copy >= 0 && mapped == MAP_FAILED)
+        mapped = ldmenu_old_mmap(addr, size, prot, flags, fd, offset);
+    return mapped;
+}
+
+static bool ldmenu_matches_module(int fd) {
+    int original = open("/data/adb/modules/ldmenu/zygisk/x86_64.so",
+                        O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+    if (original < 0) return false;
+    struct stat a{}, b{};
+    bool same = fstat(original, &a) == 0 && fstat(fd, &b) == 0 &&
+                S_ISREG(a.st_mode) && a.st_size == b.st_size && a.st_size > 0 &&
+                a.st_size <= 16 * 1024 * 1024;
+    char left[4096], right[4096];
+    for (off_t offset = 0; same && offset < a.st_size;) {
+        ssize_t count = pread(original, left, sizeof(left), offset);
+        if (count <= 0 || pread(fd, right, count, offset) != count || memcmp(left, right, count)) {
+            same = false; break;
+        }
+        offset += count;
+    }
+    close(original);
+    return same;
+}
+
+#ifdef LDMENU_TRACE_EXPERIMENT
+void *(*ldmenu_old_dlsym)(void *, const char *) = nullptr;
+void *(*ldmenu_linker_dlsym)(void *, const char *, const void *) = nullptr;
+long (*ldmenu_old_ptrace)(int, ...) = nullptr;
+static long ldmenu_ptrace(int request, pid_t target, void *addr, void *data) {
+    unsigned long before = reinterpret_cast<unsigned long>(data);
+    unsigned long filtered = ldmenu_trace_trial::options(request, target, ldmenu_trace_app_pid, before);
+    long result = ldmenu_old_ptrace(request, target, addr, reinterpret_cast<void *>(filtered));
+    if ((request == PTRACE_SETOPTIONS || request == PTRACE_SEIZE) &&
+        target == ldmenu_trace_app_pid && ldmenu_trace_options_observer)
+        ldmenu_trace_options_observer(before, filtered, result);
+    return result;
+}
+static void *ldmenu_dlsym(void *handle, const char *name) {
+    // Preserve Bionic's caller-address namespace and RTLD_NEXT semantics.
+    void *result = ldmenu_linker_dlsym(handle, name, __builtin_return_address(0));
+    if (!result || !name) return result;
+    if (strcmp(name, "ptrace") == 0) {
+        ldmenu_old_ptrace = reinterpret_cast<decltype(ldmenu_old_ptrace)>(result);
+        return reinterpret_cast<void *>(ldmenu_ptrace);
+    }
+    if (strcmp(name, "syscall") == 0) {
+        ldmenu_trace_previous_syscall = reinterpret_cast<decltype(ldmenu_trace_previous_syscall)>(result);
+        return reinterpret_cast<void *>(ldmenu_trace_syscall);
+    }
+    return result;
+}
+#endif
+
+static void ldmenu_install_mmap(int fd, const struct stat &info) {
+    if (ldmenu_old_mmap || !ldmenu_matches_module(fd)) return;
+    if (!ldmenu_fork_guard()) return;
+#ifdef LDMENU_TRACE_EXPERIMENT
+    ldmenu_trace_app_pid = getpid();
+    ldmenu_trace_options_observer = [](unsigned long before, unsigned long after, long result) {
+        // Bounded test-only audit; no library contents, pointers or credentials.
+        static unsigned reports = 0;
+        if (reports++ >= 4) return;
+        char line[128];
+        int size = ssprintf(line, sizeof(line), "pid=%d before=%lx after=%lx rc=%ld\n",
+                            getpid(), before, after, result);
+        int out = open("/data/data/com.vng.playtogether/cache/ldmask-trace-audit.txt",
+                       O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC | O_NOFOLLOW, 0600);
+        if (out >= 0) {
+            struct stat audit{};
+            if (fstat(out, &audit) == 0 && S_ISREG(audit.st_mode) && audit.st_size < 4096)
+                write(out, line, size);
+            close(out);
+        }
+    };
+    lsplt::RegisterHook(info.st_dev, info.st_ino, "syscall",
+                       reinterpret_cast<void *>(ldmenu_trace_syscall),
+                       reinterpret_cast<void **>(&ldmenu_trace_previous_syscall));
+    ldmenu_linker_dlsym = reinterpret_cast<decltype(ldmenu_linker_dlsym)>(
+        dlsym(RTLD_DEFAULT, "__loader_dlsym"));
+    if (ldmenu_linker_dlsym)
+        lsplt::RegisterHook(info.st_dev, info.st_ino, "dlsym",
+                           reinterpret_cast<void *>(ldmenu_dlsym),
+                           reinterpret_cast<void **>(&ldmenu_old_dlsym));
+#endif
+    if (!lsplt::RegisterHook(info.st_dev, info.st_ino, "mmap",
+                            reinterpret_cast<void *>(ldmenu_mmap),
+                            reinterpret_cast<void **>(&ldmenu_old_mmap))) return;
+    lsplt::CommitHook();
+    if (ldmenu_old_mmap) {
+        ldmenu_loader_pinned = true;
+        ZLOGI("ldmenu_trial module mmap hook installed pid=%d\n", getpid());
+    }
+}
+
+static int ldmenu_snapshot(const char *path) {
+    if (!path || !ldmenu_trial::target(path)) return -1;
+    bool created;
+    int fd = ldmenu_loader_trial::capture_file(path, &created);
+    if (fd >= 0 && g_ctx && !g_ctx->exempt_fd(fd)) return -1;
+    return fd;
+}
+static void ldmenu_load_result(int fd, bool success) {
+    // No paths, credentials or contents in trial logs.
+    __android_log_print(ANDROID_LOG_INFO, "LDMenuTrial", "loader pid=%d fd=%d result=%d",
+                        getpid(), fd, success);
+}
+static void *ldmenu_load(const char *path, int flags) {
+    int fd = ldmenu_snapshot(path);
+    if (fd < 0) return ldmenu_old_load(path, flags);
+    char indirect[64]; ssprintf(indirect, sizeof(indirect), "/proc/self/fd/%d", fd);
+    void *handle = ldmenu_old_load(indirect, flags);
+    ldmenu_load_result(fd, handle != nullptr);
+    return handle ? handle : ldmenu_old_load(path, flags);
+}
+static void *ldmenu_load_ext(const char *path, int flags, void *ns) {
+    int fd = ldmenu_snapshot(path);
+    if (fd < 0) return ldmenu_old_load_ext(path, flags, ns);
+    char indirect[64]; ssprintf(indirect, sizeof(indirect), "/proc/self/fd/%d", fd);
+    void *handle = ldmenu_old_load_ext(indirect, flags, ns);
+    ldmenu_load_result(fd, handle != nullptr);
+    return handle ? handle : ldmenu_old_load_ext(path, flags, ns);
+}
+static void ldmenu_install_loader() {
+    // Only the already-loaded Android9 x86_64 translator. No pattern patching,
+    // instruction overwrites, forced dlopen or assumptions about other ABIs.
+    void *lib = dlopen("/system/lib64/libhoudini.so", RTLD_NOW | RTLD_NOLOAD);
+    if (!lib) return;
+    auto *table = static_cast<ldmenu_loader_trial::BridgePrefix *>(dlsym(lib, "NativeBridgeItf"));
+    if (!table) { dlclose(lib); return; }
+    bool writable = false, load_rx = false, ext_rx = false;
+    for (const auto &map : lsplt::MapInfo::Scan()) {
+        if (map.path != "/system/lib64/libhoudini.so") continue;
+        auto base = reinterpret_cast<uintptr_t>(table);
+        if (base >= map.start && base + sizeof(*table) <= map.end &&
+            map.is_private && (map.perms & (PROT_READ | PROT_WRITE)) == (PROT_READ | PROT_WRITE))
+            writable = true;
+        auto load = reinterpret_cast<uintptr_t>(table->load);
+        auto ext = reinterpret_cast<uintptr_t>(table->load_ext);
+        if (map.perms & PROT_EXEC) {
+            load_rx |= load >= map.start && load < map.end;
+            ext_rx |= ext >= map.start && ext < map.end;
+        }
+    }
+    if (writable && load_rx && ext_rx && (table->version == 3 || table->version == 4)) {
+        if (!ldmenu_fork_guard()) { dlclose(lib); return; }
+        ldmenu_old_load = table->load;
+        ldmenu_old_load_ext = table->load_ext;
+        __atomic_store_n(&table->load, ldmenu_load, __ATOMIC_RELEASE);
+        __atomic_store_n(&table->load_ext, ldmenu_load_ext, __ATOMIC_RELEASE);
+        ldmenu_loader_pinned = true;
+        ZLOGI("ldmenu_trial loader installed version=%u pid=%d\n", table->version, getpid());
+    }
+    dlclose(lib);
+}
+#endif
+
 #undef DCL_PRE_POST
 
 // -----------------------------------------------------------------
@@ -209,6 +415,11 @@ DCL_HOOK_FUNC(int, pthread_attr_destroy, void *target) {
     ZLOGV("pthread_attr_destroy\n");
     if (should_unmap_zygisk) {
         unhook_functions();
+#ifdef LDMENU_LOADER_EXPERIMENT
+        // Restore normal Zygote PLT hooks but retain the code backing the two
+        // app-local callback pointers until this app process exits.
+        if (ldmenu_loader_pinned) should_unmap_zygisk = false;
+#endif
         if (should_unmap_zygisk) {
             // Because both `pthread_attr_destroy` and `dlclose` have the same function signature,
             // we can use `musttail` to let the compiler reuse our stack frame and thus
@@ -520,6 +731,10 @@ void HookContext::run_modules_pre(const vector<int> &fds) {
         if (void *h = android_dlopen_ext("/jit-zygisk-cache", RTLD_LAZY, &info)) {
             if (void *e = dlsym(h, "zygisk_module_entry")) {
                 modules.emplace_back(i, h, e);
+#if defined(LDMENU_LOADER_EXPERIMENT) && defined(__x86_64__)
+                if (flags[DO_FUTILE_HIDE] && process && strcmp(process, "com.vng.playtogether") == 0)
+                    ldmenu_install_mmap(fds[i], s);
+#endif
             }
         } else if (g_ctx->flags[SERVER_FORK_AND_SPECIALIZE]) {
             ZLOGW("Failed to dlopen zygisk module: %s\n", dlerror());
@@ -575,6 +790,39 @@ void HookContext::run_modules_post() {
         }
         m.tryUnload();
     }
+#ifdef LDMENU_HIDE_EXPERIMENT
+    if (flags[DO_FUTILE_HIDE] && flags[APP_SPECIALIZE] && process &&
+        strcmp(process, "com.vng.playtogether") == 0) {
+        unsigned found = 0, changed = 0;
+        size_t copied = 0;
+        const bool single = ldmenu_trial::single_threaded();
+        for (const auto &map : lsplt::MapInfo::Scan()) {
+            if (!ldmenu_trial::target(map.path)) continue;
+            ++found;
+            const size_t size = map.end - map.start;
+            if (!single || !map.inode || copied + size > 16 * 1024 * 1024) continue;
+            if (ldmenu_trial::remap_readonly(reinterpret_cast<void *>(map.start),
+                                            size, map.perms, map.is_private)) {
+                ++changed;
+                copied += size;
+            }
+        }
+        // Native Hide deliberately mutes Magisk logging at the namespace switch.
+        // A dedicated trial tag records only counters, never payload/user data.
+        __android_log_print(ANDROID_LOG_INFO, "LDMenuTrial",
+              "post pid=%d found=%u changed=%u bytes=%zu single=%d",
+              getpid(), found, changed, copied, single);
+        // Some LD builds suppress app liblog output. Keep one temporary,
+        // no-follow diagnostic in the game's cache for the authorized trial.
+        int trace = open("/data/data/com.vng.playtogether/cache/ldmask-ldmenu-trial.txt",
+                         O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC | O_NOFOLLOW, 0600);
+        if (trace >= 0) {
+            dprintf(trace, "post pid=%d found=%u changed=%u bytes=%zu single=%d\n",
+                    getpid(), found, changed, copied, single);
+            close(trace);
+        }
+    }
+#endif
     if (flags[DO_FUTILE_HIDE] && SoList::Initialize()) {
         SoList::NullifySoName("/memfd:jit-zygisk-cache");
         SoList::NullifySoName("/modules/");
@@ -583,6 +831,10 @@ void HookContext::run_modules_post() {
 
 void HookContext::app_specialize_pre() {
     flags[APP_SPECIALIZE] = true;
+#ifdef LDMENU_HIDE_EXPERIMENT
+    if (process && strcmp(process, "com.vng.playtogether") == 0)
+        ZLOGI("ldmenu_trial PRE %s pid=%d uid=%d\n", MAGISK_VERSION, getpid(), args.app->uid);
+#endif
 
     vector<int> module_fds;
     int fd = remote_get_info(args.app->uid, process, &info_flags, module_fds);
@@ -616,6 +868,10 @@ void HookContext::app_specialize_pre() {
     }
 
     if (fd >= 0) {
+#if defined(LDMENU_LOADER_EXPERIMENT) && defined(__x86_64__)
+        if (flags[DO_FUTILE_HIDE] && process && strcmp(process, "com.vng.playtogether") == 0)
+            ldmenu_install_loader();
+#endif
         run_modules_pre(module_fds);
     }
     close(fd);

@@ -28,3 +28,4 @@ app/src/main/resources/META-INF/
 app/src/debug/assets/
 app/src/release/assets/
 module-src/ldlogin/module/system/bin/ldlogin_finder
+module-src/ldmenu/module/zygisk/

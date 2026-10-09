@@ -14,6 +14,7 @@
 tools/** binary
 *.jar binary
 *.exe binary
+*.so binary
 *.apk binary
 *.png binary
 *.jpg binary

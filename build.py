@@ -358,6 +358,14 @@ def dump_flag_header():
     flag_txt += f'#define MAGISK_VERSION      "{config["version"]}"\n'
     flag_txt += f'#define MAGISK_VER_CODE     {config["versionCode"]}\n'
     flag_txt += f"#define MAGISK_DEBUG        {0 if args.release else 1}\n"
+    # Loader integration is selected by the paired LDMask/LDMenu build config.
+    # Ptrace tracing and earlier remap experiments remain test-only options.
+    if config.get("ldmenuHideExperiment") == "true":
+        flag_txt += "#define LDMENU_HIDE_EXPERIMENT 1\n"
+    if config.get("ldmenuLoaderExperiment") == "true":
+        flag_txt += "#define LDMENU_LOADER_EXPERIMENT 1\n"
+    if config.get("ldmenuTraceExperiment") == "true":
+        flag_txt += "#define LDMENU_TRACE_EXPERIMENT 1\n"
 
     mkdir_p(native_gen_path)
     write_if_diff(op.join(native_gen_path, "flags.h"), flag_txt)
