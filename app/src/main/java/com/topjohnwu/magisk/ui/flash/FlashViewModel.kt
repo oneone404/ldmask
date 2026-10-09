@@ -11,6 +11,7 @@ import com.topjohnwu.magisk.BR
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.arch.BaseViewModel
 import com.topjohnwu.magisk.core.Const
+import com.topjohnwu.magisk.core.Config
 import com.topjohnwu.magisk.core.Info
 import com.topjohnwu.magisk.core.ktx.reboot
 import com.topjohnwu.magisk.core.ktx.synchronized
@@ -98,6 +99,7 @@ class FlashViewModel : BaseViewModel() {
                         MagiskInstaller.Direct(outItems, logItems).exec()
                 }
                 Const.Value.FLASH_MAGISK_SYSTEM -> {
+                    Config.recovery = false
                     MagiskInstaller.Direct_system(outItems, logItems).exec()
                 }
                 Const.Value.FLASH_INACTIVE_SLOT -> {

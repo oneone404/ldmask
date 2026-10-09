@@ -45,16 +45,18 @@
                 android:textAppearance="@style/AppearanceFoundation.Caption.Primary" />
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:gravity="end" android:orientation="horizontal">
-                <Button android:id="@+id/module_update" style="@style/WidgetFoundation.Button.Text"
-                    goneUnless="@{item.showUpdate}" android:layout_width="wrap_content" android:layout_height="48dp"
-                    android:enabled="@{item.updateReady}" android:text="@string/update" android:textAllCaps="false"
-                    android:onClick="@{() -> viewModel.downloadPressed(item.item.updateInfo)}" app:icon="@drawable/ic_update_md2" />
-                <Button android:id="@+id/module_remove" style="@style/WidgetFoundation.Button.Text"
-                    android:layout_width="wrap_content" android:layout_height="48dp"
-                    android:enabled="@{!item.updated}" android:textAllCaps="false"
-                    android:text="@{item.removed ? @string/module_state_restore : @string/module_state_remove}"
+                <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/module_update"
+                    style="@style/Widget.LDMask.IconAction" goneUnless="@{item.showUpdate}"
+                    android:enabled="@{item.updateReady}" android:contentDescription="@string/install"
+                    android:onClick="@{() -> viewModel.downloadPressed(item.item.updateInfo)}"
+                    app:tint="?colorPrimary" app:srcCompat="@drawable/ic_install" />
+                <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/module_remove"
+                    style="@style/Widget.LDMask.IconAction"
+                    android:enabled="@{!item.updated}"
+                    android:contentDescription="@{item.removed ? @string/module_state_restore : @string/module_state_remove}"
                     android:onClick="@{() -> item.delete()}"
-                    app:icon="@{item.removed ? @drawable/ic_restart : @drawable/ic_delete_md2}" />
+                    app:tint="?colorPrimary"
+                    app:srcCompat="@{item.removed ? @drawable/ic_restart : @drawable/ic_delete_md2}" />
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

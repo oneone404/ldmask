@@ -118,3 +118,21 @@ that mounts can always be restored during a running session.
 This source has no KernelSU-style module WebUI host or module action/configuration
 button. OneOne settings require its separate settings UI or a future dedicated
 LDMask screen; this release does not add that configuration UI.
+
+## Icon-only actions and direct root install (v1.0.4)
+
+Home's manager title is LDMask. Its install icon is visible only for a known newer
+APK version; the current version has no reinstall button. Home entry refreshes
+metadata instead of retaining a process-lifetime cache. Failed/offline checks hide
+the icon, not claim up-to-date. The click rechecks and avoids an equal/older APK.
+No background polling/service added. Magisk always has a single install icon.
+Tools removal/restore actions have no visible text, and the install icon appears
+only for a newer module that is not already staged/marked for removal. Reboot after
+flash is icon-only and explicit. Accessibility descriptions and 48dp targets remain.
+
+The Magisk install icon bypasses the removed method chooser and invokes the same
+`FLASH_MAGISK_SYSTEM` / `MagiskInstaller.Direct_system` backend that the old system
+method used, with Recovery explicitly false. It refuses without existing root or
+when Info reports boot-image root. It never falls back to boot/recovery/slot patching
+or emulator fix-env. This is a root/system mutation when the USER clicks it, not
+an APK update. No live root reinstall is performed merely to verify this UI change.

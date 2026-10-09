@@ -61,27 +61,13 @@
                 app:layout_constraintBottom_toBottomOf="@+id/home_magisk_title"
                 app:layout_constraintTop_toTopOf="@+id/home_magisk_title">
 
-                <Button
-                    style="@style/WidgetFoundation.Button"
-                    gone="@{viewModel.magiskState != State.OUTDATED}"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:onClick="@{() -> viewModel.onMagiskPressed()}"
-                    android:text="@string/update"
-                    android:textAllCaps="false"
-                    android:layout_gravity="end"
-                    app:icon="@drawable/ic_update_md2" />
-
-                <Button
-                    style="@style/WidgetFoundation.Button.Text"
-                    gone="@{viewModel.magiskState == State.OUTDATED}"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                <androidx.appcompat.widget.AppCompatImageButton
+                    style="@style/Widget.LDMask.IconAction"
                     android:layout_gravity="end"
                     android:onClick="@{() -> viewModel.onMagiskPressed()}"
-                    android:text="@string/install"
-                    android:textAllCaps="false"
-                    app:icon="@drawable/ic_install"/>
+                    android:contentDescription="@string/install"
+                    app:tint="?colorPrimary"
+                    app:srcCompat="@drawable/ic_install" />
 
             </FrameLayout>
 

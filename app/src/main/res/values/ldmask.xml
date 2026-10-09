@@ -1,4 +1,6 @@
 <resources>
+    <string name="ldmask_app_label" translatable="false">LDMask</string>
+    <string name="ldmask_system_install_unavailable">Direct /system installation requires existing root and an environment not boot-image patched. No automatic install-method fallback.</string>
     <string name="ldmask_home" translatable="false">Home</string>
     <string name="ldmask_log" translatable="false">Log</string>
     <string name="ldmask_tools" translatable="false">Tools</string>
@@ -10,6 +12,5 @@
     <string name="ldmask_remove_system_su">Delete system su files</string>
     <string name="ldmask_delete">Delete</string>
     <string name="ldmask_remove_system_su_confirm">Permanently delete only these two files:\n/system/bin/su\n/system/xbin/su\n\nDo not delete directories. Preserve the independent Magisk root path. The system mount may temporarily be made writable, then restored. No backup or automatic reboot.</string>
-    <string name="ldmask_quick_install">Quick install OneOne + ktools</string>
-    <string name="ldmask_quick_install_hint">Download both modules from the latest LDMask release, verify and install, then delete temporary ZIPs. Reboot manually when finished.</string>
+    <string name="ldmask_quick_install">Quick Install Modules</string>
 </resources>

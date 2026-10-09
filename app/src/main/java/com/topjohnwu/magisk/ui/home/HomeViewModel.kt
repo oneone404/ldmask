@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import com.topjohnwu.magisk.BR
 import com.topjohnwu.magisk.BuildConfig
+import com.topjohnwu.magisk.MainDirections
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.arch.ActivityExecutor
 import com.topjohnwu.magisk.arch.AsyncLoadViewModel
@@ -17,6 +18,7 @@ import com.topjohnwu.magisk.arch.ContextExecutor
 import com.topjohnwu.magisk.arch.UIActivity
 import com.topjohnwu.magisk.arch.ViewEvent
 import com.topjohnwu.magisk.core.Config
+import com.topjohnwu.magisk.core.Const
 import com.topjohnwu.magisk.core.Info
 import com.topjohnwu.magisk.core.download.Subject
 import com.topjohnwu.magisk.core.download.Subject.App
@@ -90,7 +92,9 @@ class HomeViewModel(
 
     override suspend fun doLoadWork() {
         appState = State.LOADING
-        Info.getRemote(svc)?.apply {
+        // UI-entry driven refresh, not background polling. A hidden update icon
+        // must reappear when a new release is published during this process.
+        svc.fetchUpdate()?.apply { Info.remote = this }?.apply {
             appState = when {
                 BuildConfig.VERSION_CODE < magisk.versionCode -> State.OUTDATED
                 else -> State.UP_TO_DATE
@@ -138,9 +142,12 @@ class HomeViewModel(
                         // Recheck at click time: Info.remote may predate a newly published release.
                         val latest = svc.fetchUpdate()
                         if (latest == null) SnackbarEvent(R.string.no_connection).publish()
-                        else {
+                        else if (latest.magisk.versionCode > BuildConfig.VERSION_CODE) {
                             Info.remote = latest
                             ManagerInstallDialog().show()
+                        } else {
+                            Info.remote = latest
+                            appState = State.UP_TO_DATE
                         }
                     } finally { checkingManager = false }
                 }
@@ -148,8 +155,15 @@ class HomeViewModel(
         }
     }
 
-    fun onMagiskPressed() = withExternalRW {
-        HomeFragmentDirections.actionHomeFragmentToInstallFragment().navigate()
+    fun onMagiskPressed() {
+        // Same eligibility as the old direct-system option. No patch/recovery/
+        // inactive-slot chooser and no boot-image fallback.
+        if (!Info.isRooted || Info.isBootPatched) {
+            SnackbarEvent(R.string.ldmask_system_install_unavailable).publish()
+            return
+        }
+        Config.recovery = false
+        MainDirections.actionFlashFragment(Const.Value.FLASH_MAGISK_SYSTEM, null).navigate()
     }
 
     private suspend fun ensureEnv() {

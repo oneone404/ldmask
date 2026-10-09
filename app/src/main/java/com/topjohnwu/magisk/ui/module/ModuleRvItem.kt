@@ -50,12 +50,12 @@ class LocalModuleRvItem(
 
     @get:Bindable
     var isRemoved = item.remove
-        set(value) = set(value, field, { field = it }, BR.removed, BR.updateReady) {
+        set(value) = set(value, field, { field = it }, BR.removed, BR.updateReady, BR.showUpdate) {
             item.remove = value
         }
 
     @get:Bindable
-    val showUpdate get() = item.updateInfo != null
+    val showUpdate get() = item.updateInfo != null && item.outdated && !isRemoved && !isUpdated
 
     @get:Bindable
     val updateReady get() = item.outdated && !isRemoved && isEnabled

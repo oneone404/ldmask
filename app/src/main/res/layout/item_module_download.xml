@@ -30,13 +30,6 @@
         app:cornerRadius="@dimen/r1"
         app:icon="@drawable/ic_module_storage_md2" />
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:text="@string/ldmask_quick_install_hint"
-        android:textSize="12sp" />
-
     </LinearLayout>
 
 </layout>

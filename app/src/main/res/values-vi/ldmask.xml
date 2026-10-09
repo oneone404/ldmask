@@ -1,4 +1,5 @@
 <resources>
+    <string name="ldmask_system_install_unavailable">Cài trực tiếp /system yêu cầu root sẵn và môi trường chưa root bằng boot image. Không tự đổi phương pháp cài.</string>
     <string name="ldmask_cleanup">Xoá</string>
     <string name="ldmask_remove_all_modules">Xoá tất cả module</string>
     <string name="ldmask_remove_all_modules_confirm">Đánh dấu gỡ tất cả module đã cài và đang chờ cài khi khởi động lại LD? Giữ root Magisk. Dữ liệu riêng có thể được xoá bởi script gỡ của từng module. Không tự reboot.</string>
@@ -7,6 +8,5 @@
     <string name="ldmask_remove_system_su">Xoá su trong bin/xbin</string>
     <string name="ldmask_delete">Xoá</string>
     <string name="ldmask_remove_system_su_confirm">Xoá vĩnh viễn đúng hai file:\n/system/bin/su\n/system/xbin/su\n\nKhông xoá thư mục. Giữ đường dẫn root Magisk riêng. Phân vùng hệ thống có thể tạm chuyển sang ghi rồi khôi phục lại. Không sao lưu, không tự reboot.</string>
-    <string name="ldmask_quick_install">Cài nhanh OneOne + ktools</string>
-    <string name="ldmask_quick_install_hint">Tải hai module từ bản LDMask mới nhất, kiểm tra rồi cài và xoá ZIP tạm. Khởi động lại LD sau khi cài xong.</string>
+    <string name="ldmask_quick_install">Cài Nhanh Module</string>
 </resources>

@@ -43,7 +43,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/l1"
-                android:text="@string/home_app_title"
+                android:text="@string/ldmask_app_label"
                 android:textAppearance="@style/AppearanceFoundation.Title"
                 android:textColor="?colorPrimary"
                 android:maxLines="1"
@@ -52,7 +52,7 @@
                 app:layout_constraintEnd_toStartOf="@+id/home_manager_button"
                 app:layout_constraintStart_toEndOf="@+id/home_manager_icon"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:text="@string/home_app_title" />
+                tools:text="@string/ldmask_app_label" />
 
             <FrameLayout
                 android:id="@+id/home_manager_button"
@@ -62,27 +62,14 @@
                 app:layout_constraintBottom_toBottomOf="@+id/home_manager_title"
                 app:layout_constraintTop_toTopOf="@+id/home_manager_title">
 
-                <Button
-                    style="@style/WidgetFoundation.Button"
+                <androidx.appcompat.widget.AppCompatImageButton
+                    style="@style/Widget.LDMask.IconAction"
                     gone="@{viewModel.appState != State.OUTDATED}"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:onClick="@{() -> viewModel.onManagerPressed()}"
-                    android:text="@string/update"
-                    android:textAllCaps="false"
-                    android:layout_gravity="end"
-                    app:icon="@drawable/ic_update_md2" />
-
-                <Button
-                    style="@style/WidgetFoundation.Button.Text"
-                    gone="@{viewModel.appState != State.UP_TO_DATE}"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
                     android:layout_gravity="end"
                     android:onClick="@{() -> viewModel.onManagerPressed()}"
-                    android:text="@string/install"
-                    android:textAllCaps="false"
-                    app:icon="@drawable/ic_install"/>
+                    android:contentDescription="@string/install"
+                    app:tint="?colorPrimary"
+                    app:srcCompat="@drawable/ic_install" />
 
             </FrameLayout>
 

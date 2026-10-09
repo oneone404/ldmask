@@ -111,4 +111,64 @@ class LDMaskUiContractTest {
         assertTrue(dialog.contains("ButtonType.POSITIVE"))
         assertTrue(dialog.contains("ButtonType.NEGATIVE"))
     }
+
+    @Test fun homeUsesInstallIconsAndAppOnlyShowsWhenOutdated() {
+        val manager = source("res/layout/include_home_manager.xml")
+        val magisk = source("res/layout/include_home_magisk.xml")
+        for (xml in listOf(manager, magisk)) {
+            assertTrue(xml.contains("AppCompatImageButton"))
+            assertTrue(xml.contains("@drawable/ic_install"))
+            assertFalse(xml.contains("@drawable/ic_update_md2"))
+            assertFalse(xml.contains("android:text=\"@string/install\""))
+            assertFalse(xml.contains("android:text=\"@string/update\""))
+        }
+        assertTrue(manager.contains("viewModel.appState != State.OUTDATED"))
+        assertFalse(manager.contains("State.UP_TO_DATE"))
+        assertEquals(1, Regex("<androidx.appcompat.widget.AppCompatImageButton").findAll(manager).count())
+        val vm = source("java/com/topjohnwu/magisk/ui/home/HomeViewModel.kt")
+        val load = vm.substringAfter("override suspend fun doLoadWork()").substringBefore("override fun onNetworkChanged")
+        assertTrue(load.contains("svc.fetchUpdate()"))
+        assertFalse(load.contains("Info.getRemote(svc)"))
+        assertTrue(vm.contains("latest.magisk.versionCode > BuildConfig.VERSION_CODE"))
+    }
+
+    @Test fun moduleActionsAreIconOnlyAndNewVersionGated() {
+        val xml = source("res/layout/item_module_md2.xml")
+        assertFalse(xml.contains("android:text=\"@string/update\""))
+        assertFalse(xml.contains("@drawable/ic_update_md2"))
+        assertTrue(xml.contains("@drawable/ic_install"))
+        assertTrue(xml.contains("android:contentDescription="))
+        val actions = xml.substringAfter("android:gravity=\"end\"")
+        assertFalse(actions.contains("android:text="))
+        val item = source("java/com/topjohnwu/magisk/ui/module/ModuleRvItem.kt")
+        assertTrue(item.contains("item.updateInfo != null && item.outdated && !isRemoved && !isUpdated"))
+        val install = source("res/layout/item_module_download.xml")
+        assertFalse(install.contains("ldmask_quick_install_hint"))
+        assertTrue(source("res/values-vi/ldmask.xml").contains(">Cài Nhanh Module<"))
+    }
+
+    @Test fun rebootAfterFlashIsAnAccessibleIconOnlyFab() {
+        val xml = source("res/layout/fragment_flash_md2.xml")
+        assertFalse(xml.contains("ExtendedFloatingActionButton"))
+        assertFalse(xml.contains("android:text=\"@string/reboot\""))
+        assertTrue(xml.contains("FloatingActionButton"))
+        assertTrue(xml.contains("android:contentDescription=\"@string/reboot\""))
+        assertTrue(xml.contains("@drawable/ic_restart"))
+        assertTrue(xml.contains("viewModel.flashing || !viewModel.showReboot"))
+    }
+
+    @Test fun magiskInstallIsDirectSystemWithoutRecoveryOrChooser() {
+        val vm = source("java/com/topjohnwu/magisk/ui/home/HomeViewModel.kt")
+        val action = vm.substringAfter("fun onMagiskPressed()").substringBefore("private suspend fun ensureEnv")
+        assertTrue(action.contains("!Info.isRooted || Info.isBootPatched"))
+        assertTrue(action.contains("Config.recovery = false"))
+        assertTrue(action.contains("Const.Value.FLASH_MAGISK_SYSTEM"))
+        assertFalse(action.contains("withExternalRW"))
+        assertFalse(source("res/navigation/main.xml").contains("installFragment"))
+        val flash = source("java/com/topjohnwu/magisk/ui/flash/FlashViewModel.kt")
+            .substringAfter("Const.Value.FLASH_MAGISK_SYSTEM ->").substringBefore("Const.Value.FLASH_INACTIVE_SLOT")
+        assertTrue(flash.contains("Config.recovery = false"))
+        assertTrue(flash.contains("MagiskInstaller.Direct_system"))
+        assertTrue(source("res/layout/include_home_manager.xml").contains("android:text=\"@string/ldmask_app_label\""))
+    }
 }
