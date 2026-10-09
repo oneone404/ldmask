@@ -41,8 +41,14 @@ class LocalModuleRvItem(
 
     val isUpdated = item.updated
 
-    val hasConfiguration = item.id == "oneone" && listOf("modules", "modules_update").any {
-        RootUtils.fs.getFile("/data/adb/$it/oneone/ui.json").isFile
+    val displayName get() = when (item.id) {
+        "ldlogin", "oneone" -> "LDLogin"
+        "ldmenu", "ktools_zygisk" -> "LDMenu"
+        else -> item.name
+    }
+
+    val hasConfiguration = item.id == "ldlogin" && listOf("modules", "modules_update").any {
+        RootUtils.fs.getFile("/data/adb/$it/ldlogin/ui.json").isFile
     }
 
     fun fetchedUpdateInfo() {

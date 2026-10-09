@@ -13,7 +13,7 @@ data class QuickModule(val id: String, val asset: ReleaseAsset, val versionCode:
 object QuickModuleCatalog {
     const val REPO = "oneone404/ldmask"
     const val MAX_ZIP = 64L * 1024 * 1024
-    private val moduleIds = linkedMapOf("OneOne.zip" to "oneone", "Module.zip" to "ktools_zygisk")
+    private val moduleIds = linkedMapOf("LDLogin.zip" to "ldlogin", "LDMenu.zip" to "ldmenu")
 
     fun release(text: String): ModuleRelease {
         val json = JSONObject(text)

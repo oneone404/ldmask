@@ -224,7 +224,7 @@ class LDMaskUiContractTest {
         assertTrue(fragment.contains("TextInputEditText"))
         assertFalse(fragment.contains("WebView"))
         val repo = source("java/com/topjohnwu/magisk/core/tasks/ModuleUiRepository.kt")
-        assertTrue(repo.contains("/data/adb/oneone/settings.json"))
+        assertTrue(repo.contains("/data/adb/ldlogin/settings.json"))
         assertTrue(repo.contains("--save-settings"))
         assertTrue(repo.contains("snapshot.fingerprint"))
         assertTrue(repo.contains("timeout -s TERM -k 2 10"))
@@ -247,6 +247,29 @@ class LDMaskUiContractTest {
         assertTrue(home.contains("@drawable/ic_delete_md2"))
         assertTrue(home.contains("viewModel.onDeletePressed()"))
         assertTrue(source("res/values-vi/ldmask.xml").contains(">Gỡ Magisk<"))
+    }
+
+    @Test fun loginAndMenuNamesUseNewIdsAndOwnSwitch() {
+        val item = source("java/com/topjohnwu/magisk/ui/module/ModuleRvItem.kt")
+        assertTrue(item.contains("\"ldlogin\", \"oneone\" -> \"LDLogin\""))
+        assertTrue(item.contains("\"ldmenu\", \"ktools_zygisk\" -> \"LDMenu\""))
+        val fragment = source("java/com/topjohnwu/magisk/ui/module/ModuleConfigFragment.kt")
+        assertTrue(fragment.contains("if (field.key == \"enabled\") \"LDLogin\""))
+        assertFalse(fragment.contains("chooseGame"))
+        val vm = source("java/com/topjohnwu/magisk/ui/module/ModuleConfigViewModel.kt")
+        assertTrue(vm.contains("!next.valid -> \"\""))
+        assertFalse(vm.contains("Thiếu hoặc hỏng cấu hình"))
+    }
+
+    @Test fun unlistedCleanupIsFlagOnlyAndUsesTwoPassGuards() {
+        val script = source("res/raw/ldmask_cleanup_unlisted_modules.sh")
+        assertEquals(2, Regex("for BASE in /data/adb/modules /data/adb/modules_update;").findAll(script).count())
+        assertTrue(script.contains("keep_module \"\$NAME\" && continue"))
+        assertTrue(script.contains("touch \"\$DIR/disable\" \"\$DIR/remove\""))
+        assertFalse(script.contains("rm -"))
+        assertTrue(script.contains("[ ! -L \"\$DIR/\$FLAG\" ]"))
+        val task = source("java/com/topjohnwu/magisk/core/tasks/LDMaskModuleInstaller.kt")
+        assertTrue(task.contains("timeout -s TERM -k 2 15"))
     }
 
     @Test fun nativeConfigurationUsesAppSettingsStyle() {

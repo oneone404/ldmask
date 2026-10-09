@@ -10,7 +10,7 @@ data class ModuleUiSchema(val title: String, val fields: List<ModuleUiField>) {
         private val keys = setOf("enabled", "boot_wait_seconds", "logging")
         /** Small declarative data only: no paths, commands, script, WebView or arbitrary writer. */
         fun parse(text: String, moduleId: String): ModuleUiSchema {
-            require(moduleId == "oneone" && text.toByteArray().size <= 16384) { "Unsupported module UI" }
+            require(moduleId == "ldlogin" && text.toByteArray().size <= 16384) { "Unsupported module UI" }
             val reader = JsonReader.of(Buffer().writeUtf8(text))
             val root = reader.use {
                 val value = objectValue(it, 0)
@@ -18,7 +18,7 @@ data class ModuleUiSchema(val title: String, val fields: List<ModuleUiField>) {
                 value
             }
             require(root.keys == setOf("schema", "settingsId", "title", "fields")) { "Unknown UI property" }
-            require(root["schema"] == 1 && root["settingsId"] == "oneone") { "Unsupported UI schema/settingsId" }
+            require(root["schema"] == 1 && root["settingsId"] == "ldlogin") { "Unsupported UI schema/settingsId" }
             val title = label(root["title"], 64)
             val rows = root["fields"] as? List<*> ?: error("Missing fields")
             require(rows.size == 3)
@@ -78,13 +78,13 @@ data class ModuleUiSchema(val title: String, val fields: List<ModuleUiField>) {
     }
 }
 
-data class OneOneUiSettings(val enabled: Boolean = false, val bootWait: Int = 30, val logging: Boolean = false) {
+data class LDLoginUiSettings(val enabled: Boolean = false, val bootWait: Int = 30, val logging: Boolean = false) {
     init { require(bootWait in 0..600) }
     fun values(): Map<String, Any> = mapOf("enabled" to enabled, "boot_wait_seconds" to bootWait, "logging" to logging)
     companion object {
-        fun from(values: Map<String, Any>): OneOneUiSettings {
+        fun from(values: Map<String, Any>): LDLoginUiSettings {
             require(values.keys == setOf("enabled", "boot_wait_seconds", "logging"))
-            return OneOneUiSettings(values["enabled"] as? Boolean ?: error("Boolean required"),
+            return LDLoginUiSettings(values["enabled"] as? Boolean ?: error("Boolean required"),
                 values["boot_wait_seconds"] as? Int ?: error("Integer required"),
                 values["logging"] as? Boolean ?: error("Boolean required"))
         }

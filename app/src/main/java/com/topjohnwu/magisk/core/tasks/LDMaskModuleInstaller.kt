@@ -5,6 +5,7 @@ import com.topjohnwu.magisk.core.di.AppContext
 import com.topjohnwu.magisk.core.di.ServiceLocator
 import com.topjohnwu.superuser.CallbackList
 import com.topjohnwu.superuser.Shell
+import com.topjohnwu.magisk.R
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
@@ -140,7 +141,18 @@ object LDMaskModuleInstaller {
                 "grep -qxF ${quote("id=${module.id}")} $prop && " +
                     "grep -qxF ${quote("versionCode=${module.versionCode}")} $prop"
             ).exec().isSuccess
-        }, boundedLog, selectedIds).exec()
+        }, boundedLog, selectedIds, { allowed ->
+            require(allowed.isNotEmpty() && allowed.all { it in setOf("ldlogin", "ldmenu") })
+            val script = AppContext.resources.openRawResource(R.raw.ldmask_cleanup_unlisted_modules)
+                .bufferedReader().use { it.readText() }
+            val keep = "KEEP_LDLOGIN=${if ("ldlogin" in allowed) 1 else 0}\n" +
+                "KEEP_LDMENU=${if ("ldmenu" in allowed) 1 else 0}\n"
+            val command = "/data/adb/magisk/busybox timeout -s TERM -k 2 15 /data/adb/magisk/busybox sh -c ${quote(keep + script)}"
+            val output = object : CallbackList<String>() {
+                override fun onAddElement(e: String?) { if (e != null) boundedLog(e) }
+            }
+            Shell.cmd(command).to(output).exec().isSuccess
+        }).exec()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

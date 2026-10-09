@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "settingsId": "ldlogin",
+  "title": "Cấu Hình LDLogin",
+  "fields": [
+    { "key": "enabled", "type": "boolean", "label": "LDLogin", "default": false },
+    { "key": "boot_wait_seconds", "type": "integer", "label": "Chờ LD Khởi Động (Giây)", "min": 0, "max": 600, "default": 30 },
+    { "key": "logging", "type": "boolean", "label": "Ghi Log", "default": false }
+  ]
+}

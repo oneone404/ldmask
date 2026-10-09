@@ -21,8 +21,8 @@ topjohnwu/ndk-busybox commit 1c0ca97aafb9698ab7770ce1f67af1a84b469cdb (2024-06-1
 ## Release files
 
 - `LDMask.apk`: locally built manager/root APK.
-- `OneOne.zip`: user-owned OneOne module.
-- `Module.zip`: user-supplied compiled ktools module, ID `ktools_zygisk`.
+- `LDLogin.zip`: user-owned module, ID `ldlogin`; source in `module-src/ldlogin`.
+- `LDMenu.zip`: user-supplied compiled ktools payload, module ID `ldmenu`.
   Its native source is not provided by this repository; do not imply it is GPL
   source or audited merely because it is distributed beside this fork.
 - `modules.json`: release-specific module IDs, sizes, versions and SHA-256.
@@ -59,6 +59,13 @@ private to the app cache and removed in `finally`; app/process termination can
 leave a temporary directory behind. Root installs are serialized with the
 existing manual ZIP installer and use a 180-second BusyBox timeout per module.
 If module 2 fails, module 1 is reported as installed; no destructive rollback.
+Only after all selected installs succeed, modules outside the complete current
+server-published list are disabled/marked for removal in active and pending roots.
+An allowed module is retained even when unchecked. Opening/cancelling the picker
+or a failed download/validation/installation triggers no general cleanup.
+Uninstall finishes at the next Magisk boot, including normal uninstall scripts;
+arbitrary external module data is not recursively erased. Cleanup failure is
+reported separately from successful module installations. No empty allowlist wipe.
 Reboot is always explicit. An installer timeout does not guarantee that a
 module's independently spawned background process has stopped.
 
@@ -116,7 +123,7 @@ or unknown state fails visibly; no silent success. The kernel may still refuse
 RO remount; in that case reboot LD and re-check. This is not a blanket guarantee
 that mounts can always be restored during a running session.
 
-This source has no KernelSU-style WebUI/script action host. Since v1.0.6, OneOne
+This source has no KernelSU-style WebUI/script action host. Since v1.0.8, LDLogin
 with ui.json has a native gear screen; see docs/module-ui.md. No arbitrary root
 commands or config paths can be supplied by module JSON.
 
@@ -137,3 +144,20 @@ method used, with Recovery explicitly false. It refuses without existing root or
 when Info reports boot-image root. It never falls back to boot/recovery/slot patching
 or emulator fix-env. This is a root/system mutation when the USER clicks it, not
 an APK update. No live root reinstall is performed merely to verify this UI change.
+
+## Module identity migration (v1.0.8)
+
+Update LDMask first, install both renamed modules, then explicitly reboot LD once.
+Legacy `oneone` and `ktools_zygisk` are retired via Magisk disable/remove flags.
+Old `/data/adb/oneone/settings.json` is moved without overwriting an existing
+`/data/adb/ldlogin/settings.json`; disabled module state is inherited on the first
+migration. Acc.csv and LD-map.txt locations are unchanged. LDLogin remains VNG-only,
+with its separate native bot switch labelled LDLogin. Missing/bad config stays
+OFF/30/no-log without the old notice. The switch applies after Save while the bot
+service is running; Magisk's module switch still has normal reboot semantics.
+
+LDMenu's two ABI libraries are unchanged opaque binaries; the surrounding module
+ID/metadata/install migration changes do not prove runtime compatibility. Validate
+its live menu after reboot before cloning LD. Build LDLogin with
+`module-src/ldlogin/build.ps1` (Android NDK r30, x86_64 Android API 28), then package
+with `tools/package-modules.ps1`; it verifies the original LDMenu ZIP hash.

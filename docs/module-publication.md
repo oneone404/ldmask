@@ -2,7 +2,7 @@
 
 Edit catalog.json on main:
 
-    { "id": "oneone", "name": "OneOne", "published": true }
+    { "id": "ldlogin", "name": "LDLogin", "published": true }
 
 published=false hides that module from this app's quick-install picker and prevents
 new quick installs via this feature. Set true to show again. Changes need a Git
@@ -13,9 +13,18 @@ so a module hidden between selection and install is rejected without root execut
 
 modules.json is release-specific integrity metadata: ID, asset, versionCode, size,
 SHA256. Schema2 permits a subset/empty set; schema1 remains readable. Only the two
-fixed supported IDs oneone/ktools_zygisk and fixed asset names are accepted.
+fixed supported IDs ldlogin/ldmenu and assets LDLogin.zip/LDMenu.zip are accepted.
 New IDs require a host allowlist update, not arbitrary server-supplied shell/path.
 All selected ZIPs must pass size/hash/identity/path validation before any root install.
+
+After all selected installations succeed, modules outside the complete filtered
+server-published list are disabled/marked for removal (active and pending roots).
+Allowed but unchecked modules are retained. Setting published=false therefore also
+retires that module on a subsequent successful quick install of another module.
+Nothing is removed merely by opening/cancelling the picker or failing a download,
+validation or install. An empty catalog cannot trigger an all-module wipe.
+Actual removal/uninstall finishes on explicit reboot; unrelated external data is
+not recursively deleted. The picker explains this behavior before confirmation.
 
 For a new release, stage the APK/available ZIPs/integrity metadata as a draft,
 verify uploaded hashes, then publish latest. Do not silently replace published ZIPs.

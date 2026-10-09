@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.topjohnwu.magisk.arch.BaseViewModel
 import com.topjohnwu.magisk.core.tasks.ModuleUiRepository
 import com.topjohnwu.magisk.core.tasks.ModuleUiSnapshot
-import com.topjohnwu.magisk.core.tasks.OneOneUiSettings
+import com.topjohnwu.magisk.core.tasks.LDLoginUiSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -27,7 +27,7 @@ class ModuleConfigViewModel : BaseViewModel() {
                 val next = ModuleUiRepository.load(moduleId)
                 draft.clear(); draft.putAll(next.settings.values()); snapshot.value = next
                 message.value = when {
-                    !next.valid -> "Thiếu hoặc hỏng cấu hình: bot đang TẮT. Bấm Lưu để tạo cấu hình mới."
+                    !next.valid -> ""
                     next.pending -> "Module đang chờ áp dụng sau khi reboot; cấu hình vẫn được lưu riêng."
                     else -> "Bật/tắt và log áp dụng qua inotify. Thời gian chờ áp dụng ở lần boot tiếp theo."
                 }
@@ -39,7 +39,7 @@ class ModuleConfigViewModel : BaseViewModel() {
     fun save() {
         if (busy.value == true) return
         val old = snapshot.value ?: return
-        val values = try { OneOneUiSettings.from(draft) } catch (_: Exception) {
+        val values = try { LDLoginUiSettings.from(draft) } catch (_: Exception) {
             message.value = "Thời gian chờ phải là số nguyên từ 0 đến 600 giây."; return
         }
         busy.value = true

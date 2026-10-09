@@ -29,14 +29,14 @@ class QuickModuleInstallTest {
     }
 
     private class Source(private val blobs: List<ByteArray>, private val badHash: Boolean = false) : QuickReleaseSource {
-        val modules = listOf("oneone", "ktools_zygisk").mapIndexed { i, id ->
+        val modules = listOf("ldlogin", "ldmenu").mapIndexed { i, id ->
             val hash = MessageDigest.getInstance("SHA-256").digest(blobs[i]).joinToString("") { "%02x".format(it.toInt() and 255) }
-            QuickModule(id, ReleaseAsset(if (i == 0) "OneOne.zip" else "Module.zip", blobs[i].size.toLong(), ""), 1,
+            QuickModule(id, ReleaseAsset(if (i == 0) "LDLogin.zip" else "LDMenu.zip", blobs[i].size.toLong(), ""), 1,
                 if (badHash && i == 1) "0".repeat(64) else hash)
         }
         override fun latest() = ModuleRelease("v1.0.0", emptyMap())
         override fun manifest(release: ModuleRelease) = modules
-        override fun download(asset: ReleaseAsset, target: File) { target.writeBytes(blobs[if (asset.name == "OneOne.zip") 0 else 1]) }
+        override fun download(asset: ReleaseAsset, target: File) { target.writeBytes(blobs[if (asset.name == "LDLogin.zip") 0 else 1]) }
     }
 
     private fun scenario(source: QuickReleaseSource, failAt: Int = -1, selected: Set<String>? = null): Pair<QuickInstallResult, Int> = runBlocking {
@@ -50,37 +50,71 @@ class QuickModuleInstallTest {
     }
 
     @Test fun installsBothAndCleansCache() {
-        assertEquals(QuickInstallResult(true, 2) to 2, scenario(Source(listOf(zip("oneone"), zip("ktools_zygisk")))))
+        assertEquals(QuickInstallResult(true, 2) to 2, scenario(Source(listOf(zip("ldlogin"), zip("ldmenu")))))
+    }
+
+    @Test fun cleanupKeepsAllPublishedModulesNotOnlySelected() = runBlocking {
+        val source = Source(listOf(zip("ldlogin"), zip("ldmenu")))
+        val dir = Files.createTempDirectory("ldmask-cleanup-test").toFile()
+        val installed = mutableListOf<String>()
+        var kept = emptySet<String>()
+        try {
+            val result = QuickModuleInstall(dir, source, { _, module -> installed += module.id; true }, {},
+                setOf("ldlogin"), { allowed -> kept = allowed; assertEquals(listOf("ldlogin"), installed); true }).exec()
+            assertEquals(QuickInstallResult(true, 1), result)
+            assertEquals(setOf("ldlogin", "ldmenu"), kept)
+        } finally { dir.deleteRecursively() }
+    }
+
+    @Test fun cleanupNeverRunsOnDownloadValidationOrInstallFailure() = runBlocking {
+        for (badHash in listOf(false, true)) {
+            val dir = Files.createTempDirectory("ldmask-cleanup-failure").toFile()
+            var cleaned = false
+            try {
+                val result = QuickModuleInstall(dir, Source(listOf(zip("ldlogin"), zip("ldmenu")), badHash),
+                    { _, _ -> false }, {}, setOf("ldlogin", "ldmenu"), { cleaned = true; true }).exec()
+                assertFalse(result.success); assertFalse(cleaned)
+            } finally { dir.deleteRecursively() }
+        }
+    }
+
+    @Test fun cleanupFailureReportsInstalledModulesWithoutSuccess() = runBlocking {
+        val dir = Files.createTempDirectory("ldmask-cleanup-result").toFile()
+        try {
+            val result = QuickModuleInstall(dir, Source(listOf(zip("ldlogin"), zip("ldmenu"))),
+                { _, _ -> true }, {}, setOf("ldlogin", "ldmenu"), { false }).exec()
+            assertEquals(QuickInstallResult(false, 2), result)
+        } finally { dir.deleteRecursively() }
     }
     @Test fun badSecondHashInstallsNothing() {
-        assertEquals(QuickInstallResult(false, 0) to 0, scenario(Source(listOf(zip("oneone"), zip("ktools_zygisk")), true)))
+        assertEquals(QuickInstallResult(false, 0) to 0, scenario(Source(listOf(zip("ldlogin"), zip("ldmenu")), true)))
     }
     @Test fun installsOnlySelectedModuleAndDoesNotDownloadBadUnselectedZip() {
-        assertEquals(QuickInstallResult(true, 1) to 1, scenario(Source(listOf(zip("oneone"), zip("ktools_zygisk")), true), selected=setOf("oneone")))
+        assertEquals(QuickInstallResult(true, 1) to 1, scenario(Source(listOf(zip("ldlogin"), zip("ldmenu")), true), selected=setOf("ldlogin")))
     }
     @Test fun hiddenOrEmptySelectionInstallsNothing() {
-        val source = Source(listOf(zip("oneone"), zip("ktools_zygisk")))
+        val source = Source(listOf(zip("ldlogin"), zip("ldmenu")))
         assertEquals(QuickInstallResult(false, 0) to 0, scenario(source, selected=emptySet()))
         assertEquals(QuickInstallResult(false, 0) to 0, scenario(source, selected=setOf("foreign")))
     }
     @Test fun publicationIsServerControlledAndFailsClosed() {
-        val json = """{"schema":1,"modules":[{"id":"oneone","name":"OneOne","published":true},{"id":"ktools_zygisk","name":"ktools","published":false}]}"""
-        assertEquals(mapOf("oneone" to "OneOne"), QuickModuleCatalog.publication(json))
+        val json = """{"schema":1,"modules":[{"id":"ldlogin","name":"LDLogin","published":true},{"id":"ldmenu","name":"LDMenu","published":false}]}"""
+        assertEquals(mapOf("ldlogin" to "LDLogin"), QuickModuleCatalog.publication(json))
         assertTrue(QuickModuleCatalog.publication("""{"schema":1,"modules":[]}""").isEmpty())
         assertTrue(runCatching { QuickModuleCatalog.publication(json.replace("true", "\"true\"")) }.isFailure)
-        assertTrue(runCatching { QuickModuleCatalog.publication(json.replace("ktools_zygisk", "oneone")) }.isFailure)
+        assertTrue(runCatching { QuickModuleCatalog.publication(json.replace("ldmenu", "ldlogin")) }.isFailure)
     }
     @Test fun wrongSecondIdInstallsNothing() {
-        assertEquals(QuickInstallResult(false, 0) to 0, scenario(Source(listOf(zip("oneone"), zip("wrong")))))
+        assertEquals(QuickInstallResult(false, 0) to 0, scenario(Source(listOf(zip("ldlogin"), zip("wrong")))))
     }
     @Test fun unsafeZipInstallsNothing() {
-        assertEquals(QuickInstallResult(false, 0) to 0, scenario(Source(listOf(zip("oneone", true), zip("ktools_zygisk")))))
+        assertEquals(QuickInstallResult(false, 0) to 0, scenario(Source(listOf(zip("ldlogin", true), zip("ldmenu")))))
     }
     @Test fun firstFailureStopsPair() {
-        assertEquals(QuickInstallResult(false, 0) to 1, scenario(Source(listOf(zip("oneone"), zip("ktools_zygisk"))), 1))
+        assertEquals(QuickInstallResult(false, 0) to 1, scenario(Source(listOf(zip("ldlogin"), zip("ldmenu"))), 1))
     }
     @Test fun secondFailureReportsPartial() {
-        assertEquals(QuickInstallResult(false, 1) to 2, scenario(Source(listOf(zip("oneone"), zip("ktools_zygisk"))), 2))
+        assertEquals(QuickInstallResult(false, 1) to 2, scenario(Source(listOf(zip("ldlogin"), zip("ldmenu"))), 2))
     }
     @Test fun networkFailureCleansCache() {
         val source = object : QuickReleaseSource {
@@ -93,7 +127,7 @@ class QuickModuleInstallTest {
     @Test fun rejectsConcurrentInstall() = runBlocking {
         assertTrue(ModuleInstallGate.acquire())
         try {
-            val source = Source(listOf(zip("oneone"), zip("ktools_zygisk")))
+            val source = Source(listOf(zip("ldlogin"), zip("ldmenu")))
             assertEquals(QuickInstallResult(false, 0), QuickModuleInstall(File("unused"), source, { _, _ -> error("unused") }, {}).exec())
         } finally { ModuleInstallGate.release() }
     }
@@ -101,7 +135,7 @@ class QuickModuleInstallTest {
     private fun releaseJson(tag: String = "v1.0.0"): JSONObject {
         val json = JSONObject().put("draft", false).put("prerelease", false).put("tag_name", tag)
         val assets = JSONArray()
-        listOf("modules.json", "OneOne.zip", "Module.zip").forEach { name ->
+        listOf("modules.json", "LDLogin.zip", "LDMenu.zip").forEach { name ->
             assets.put(JSONObject().put("name", name).put("size", 100)
                 .put("browser_download_url", "https://github.com/oneone404/ldmask/releases/download/$tag/$name"))
         }
@@ -110,7 +144,7 @@ class QuickModuleInstallTest {
     @Test fun acceptsOwnCompleteRelease() { assertEquals(3, QuickModuleCatalog.release(releaseJson().toString()).assets.size) }
     @Test(expected = IllegalArgumentException::class) fun rejectsWrongRepo() {
         val json = releaseJson()
-        json.getJSONArray("assets").getJSONObject(1).put("browser_download_url", "https://github.com/other/repo/releases/download/v1.0.0/OneOne.zip")
+        json.getJSONArray("assets").getJSONObject(1).put("browser_download_url", "https://github.com/other/repo/releases/download/v1.0.0/LDLogin.zip")
         QuickModuleCatalog.release(json.toString())
     }
     @Test(expected = IllegalArgumentException::class) fun rejectsDuplicateAsset() {
@@ -138,7 +172,7 @@ class QuickModuleInstallTest {
         }
         val release = QuickModuleCatalog.release(json.toString())
         val modules = QuickModuleCatalog.manifest(text, release)
-        assertEquals(listOf("oneone", "ktools_zygisk"), modules.map { it.id })
+        assertEquals(listOf("ldlogin", "ldmenu"), modules.map { it.id })
         modules.forEach { QuickModuleCatalog.validate(File(dir, it.asset.name), it) }
     }
 }

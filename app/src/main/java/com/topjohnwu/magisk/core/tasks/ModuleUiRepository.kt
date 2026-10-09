@@ -6,22 +6,22 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
-data class ModuleUiSnapshot(val schema: ModuleUiSchema, val settings: OneOneUiSettings,
+data class ModuleUiSnapshot(val schema: ModuleUiSchema, val settings: LDLoginUiSettings,
     val valid: Boolean, val pending: Boolean, val fingerprint: String)
 
 object ModuleUiRepository {
-    private const val file = "/data/adb/oneone/settings.json"
+    private const val file = "/data/adb/ldlogin/settings.json"
     // Paths/reader/writer never come from the module JSON.
     private val guard = """
         [ "${'$'}(id -u)" = 0 ] || exit 10
-        BASE=/data/adb/modules/oneone
+        BASE=/data/adb/modules/ldlogin
         PENDING=0
-        if [ -d /data/adb/modules_update/oneone ]; then BASE=/data/adb/modules_update/oneone; PENDING=1; fi
+        if [ -d /data/adb/modules_update/ldlogin ]; then BASE=/data/adb/modules_update/ldlogin; PENDING=1; fi
         [ ! -L "${'$'}BASE" ] && [ ! -f "${'$'}BASE/remove" ] || exit 11
         [ ! -L "${'$'}BASE/ui.json" ] && [ -f "${'$'}BASE/ui.json" ] || exit 12
-        FINDER="${'$'}BASE/system/bin/oneone_finder_v2"
+        FINDER="${'$'}BASE/system/bin/ldlogin_finder"
         [ ! -L "${'$'}BASE/system" ] && [ ! -L "${'$'}BASE/system/bin" ] && [ ! -L "${'$'}FINDER" ] && [ -x "${'$'}FINDER" ] || exit 13
-        [ ! -L /data/adb/oneone ] && [ ! -L '$file' ] || exit 14
+        [ ! -L /data/adb/ldlogin ] && [ ! -L '$file' ] || exit 14
         fingerprint() {
           if [ -e '$file' ]; then
             [ -f '$file' ] || return 1
@@ -40,7 +40,7 @@ object ModuleUiRepository {
     }
 
     suspend fun load(moduleId: String): ModuleUiSnapshot = withContext(Dispatchers.IO) {
-        require(moduleId == "oneone")
+        require(moduleId == "ldlogin")
         val schema = ModuleUiSchema.parse(run("head -c 16385 \"\${BASE}/ui.json\"").joinToString("\n"), moduleId)
         val lines = run("""
             BEFORE=${'$'}(fingerprint) || exit 15
@@ -56,19 +56,19 @@ object ModuleUiRepository {
         require(fields[1] in setOf("0", "1") && fields[3] in setOf("0", "1"))
         require(meta[3] == "missing" || meta[3].matches(Regex("[a-f0-9]{64}")))
         val valid = meta[1] == "0"
-        ModuleUiSnapshot(schema, if (valid) OneOneUiSettings(fields[1] == "1", fields[2].toInt(), fields[3] == "1") else OneOneUiSettings(),
+        ModuleUiSnapshot(schema, if (valid) LDLoginUiSettings(fields[1] == "1", fields[2].toInt(), fields[3] == "1") else LDLoginUiSettings(),
             valid, meta[2] == "1", meta[3])
     }
 
-    suspend fun save(moduleId: String, snapshot: ModuleUiSnapshot, settings: OneOneUiSettings): ModuleUiSnapshot =
+    suspend fun save(moduleId: String, snapshot: ModuleUiSnapshot, settings: LDLoginUiSettings): ModuleUiSnapshot =
         withContext(Dispatchers.IO + NonCancellable) {
-            require(moduleId == "oneone")
+            require(moduleId == "ldlogin")
             require(snapshot.fingerprint == "missing" || snapshot.fingerprint.matches(Regex("[a-f0-9]{64}")))
             // Revalidate the descriptor and reload if any external writer changed the file.
             ModuleUiSchema.parse(run("head -c 16385 \"\${BASE}/ui.json\"").joinToString("\n"), moduleId)
             run("""
                 [ "${'$'}(fingerprint)" = '${snapshot.fingerprint}' ] || exit 20
-                mkdir -p /data/adb/oneone && chmod 700 /data/adb/oneone || exit 21
+                mkdir -p /data/adb/ldlogin && chmod 700 /data/adb/ldlogin || exit 21
                 "${'$'}FINDER" --save-settings '$file' ${if (settings.enabled) 1 else 0} ${settings.bootWait} ${if (settings.logging) 1 else 0} || exit 22
             """.trimIndent())
             load(moduleId).also { check(it.valid && it.settings == settings) { "Đã ghi nhưng kiểm tra lại không khớp; tải lại cấu hình" } }

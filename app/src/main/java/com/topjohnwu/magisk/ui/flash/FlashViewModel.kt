@@ -80,7 +80,7 @@ class FlashViewModel : BaseViewModel() {
                     showReboot = false
                     val ids = uri?.takeIf { it.scheme == "ldmask" && it.host == "modules" }
                         ?.getQueryParameter("ids")?.split(',')?.toSet()
-                    if (ids.isNullOrEmpty() || ids.any { it !in setOf("oneone", "ktools_zygisk") }) {
+                    if (ids.isNullOrEmpty() || ids.any { it !in setOf("ldlogin", "ldmenu") }) {
                         outItems.add("! No valid module selection"); onResult(false); return@launch
                     }
                     val handler = Handler(Looper.getMainLooper())

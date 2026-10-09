@@ -23,7 +23,8 @@ class QuickModuleInstall(
     private val source: QuickReleaseSource,
     private val install: (File, QuickModule) -> Boolean,
     private val log: (String) -> Unit,
-    private val selectedIds: Set<String>? = null
+    private val selectedIds: Set<String>? = null,
+    private val cleanup: (Set<String>) -> Boolean = { true }
 ) {
     suspend fun exec(): QuickInstallResult = withContext(Dispatchers.IO) {
         if (!ModuleInstallGate.acquire()) {
@@ -37,7 +38,8 @@ class QuickModuleInstall(
             check(work.mkdirs()) { "Cannot create private download directory" }
             log("- Reading latest LDMask release")
             val release = source.latest()
-            val modules = QuickModuleCatalog.select(source.manifest(release), selectedIds)
+            val available = source.manifest(release)
+            val modules = QuickModuleCatalog.select(available, selectedIds)
             total = modules.size
             log("- Release ${release.tag}")
             for (module in modules) {
@@ -57,6 +59,7 @@ class QuickModuleInstall(
                     count++
                     log("- Installed $count/$total")
                 }
+                check(cleanup(available.map { it.id }.toSet())) { "Modules installed but cleanup failed; review log" }
             }
             log("- Complete $total/$total. Reboot LD manually to activate modules.")
             QuickInstallResult(true, count)

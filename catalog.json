@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "modules": [
-    { "id": "oneone", "name": "OneOne", "published": true },
-    { "id": "ktools_zygisk", "name": "ktools", "published": true }
+    { "id": "ldlogin", "name": "LDLogin", "published": true },
+    { "id": "ldmenu", "name": "LDMenu", "published": true }
   ]
 }

@@ -8,17 +8,19 @@ Magisk/Kitsune release.
 - [Tests](tests/README.md)
 
 App: **LDMask** (`io.github.oneone404.ldmask`). Tools lets users select server-published
-**OneOne / ktools** from the latest stable release, verify/install the selection,
-then remove temporary ZIPs. No automatic reboot or added resident service.
+**LDLogin / LDMenu** from the latest stable release, verify/install the selection,
+then remove temporary ZIPs. After successful installation, modules outside the
+complete server-published list are marked for removal at reboot. Unchecked but
+allowed modules are retained. No automatic reboot or added resident service.
 
-- [Native OneOne configuration](docs/module-ui.md)
+- [Native LDLogin configuration](docs/module-ui.md)
 - [Server publication controls](docs/module-publication.md) — public visibility,
   not access control; do not publish binaries that must remain private.
 The package/native manager identity differs from the original baseline, so
 reinstall the root environment for LDMask rather than replacing only its APK.
 
 Experimental build; release-mode binaries, local Android debug signing key.
-Preserve upstream licenses and credits. The bundled ktools ZIP is user-supplied
+Preserve upstream licenses and credits. The bundled LDMenu payload is user-supplied
 binary material, not source audited by this project.
 
 ---

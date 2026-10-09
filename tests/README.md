@@ -15,7 +15,7 @@ release assets, hash/ID/path errors, network failure, partial installation,
 serialization, and private ZIP cleanup.
 
 Optional real-asset validation: set `LDMASK_RELEASE_FILES` to a directory with
-`OneOne.zip`, `Module.zip`, `modules.json` for the release before running tests.
+`LDLogin.zip`, `LDMenu.zip`, `modules.json` for the release before running tests.
 The real-asset test is skipped when the variable is unset.
 
 Actual root installation, MagiskHide, reboot behavior, Android lifecycle and
@@ -28,17 +28,28 @@ It does not execute shell deletion/remount commands or prove their runtime behav
 
 ## Native settings and server selection (v1.0.6)
 
-ModuleUiSchemaTest validates the actual OneOne descriptor, typed/default/ranged
+ModuleUiSchemaTest validates the actual LDLogin descriptor, typed/default/ranged
 settings and rejection of commands/paths/duplicates/unknown properties. Host UI
 contracts cover native widgets, fixed backend, icon-only uninstall and compact cards.
 QuickModuleInstallTest adds single-selection and fail-closed publication cases.
 
-tests/test-native-settings.ps1 runs the unchanged module finder without root in an
+tests/test-native-settings.ps1 runs the identity-renamed module finder without root in an
 exact generated /data/local/tmp/ldmask-settings-fixture-* directory. It verifies
 missing/invalid settings defaults, writer round-trip, range rejection and symlink
 write refusal, then cleans only the validated fixture directory. Real bot settings
 and accounts are not touched. Android UI/root-repository click integration still
 requires user testing; these tests do not claim visual or live bot activation QA.
+
+## ID migration and unlisted module cleanup (v1.0.8)
+
+`powershell -File tests/test-module-migration.ps1 -Serial <ADB-serial>` runs actual
+migration/cleanup scripts with rewritten paths and mocked UID in a unique non-root
+Android fixture. It covers settings preservation/no overwrite, active and staged
+legacy retirement, disabled-state inheritance/reinstall, full server-list cleanup,
+unpublished modules, symlink preflight and empty-allowlist rejection. It never
+changes real modules or bot settings. JVM tests verify cleanup is called only after
+all selected installs succeed and preserves published but unselected modules.
+These tests do not prove LDMenu's opaque library works after a real ID migration.
 
 ## Post-root preset (v1.0.5)
 

@@ -107,7 +107,7 @@ class ModuleViewModel : AsyncLoadViewModel() {
     }
 
     fun confirmQuickInstall(ids: Set<String>) {
-        require(ids.isNotEmpty() && ids.all { it in setOf("oneone", "ktools_zygisk") })
+        require(ids.isNotEmpty() && ids.all { it in setOf("ldlogin", "ldmenu") })
         MainDirections.actionFlashFragment(Const.Value.FLASH_LDMASK_MODULES,
             Uri.parse("ldmask://modules?ids=${ids.joinToString(",")}")).navigate()
     }

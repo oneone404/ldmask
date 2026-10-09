@@ -2,6 +2,7 @@ package com.topjohnwu.magisk.dialog
 
 import android.widget.CheckBox
 import android.widget.LinearLayout
+import android.widget.TextView
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.events.DialogBuilder
 import com.topjohnwu.magisk.ui.module.ModuleViewModel
@@ -20,6 +21,10 @@ class ChooseModulesDialog(private val vm: ModuleViewModel, private val modules: 
                 }
             })
         }
+        layout.addView(TextView(dialog.context).apply {
+            setText(R.string.ldmask_cleanup_unlisted_hint)
+            setTextAppearance(R.style.AppearanceFoundation_Tiny_Variant)
+        })
         dialog.setView(layout)
         dialog.setButton(MagiskDialog.ButtonType.POSITIVE) {
             text = R.string.install; doNotDismiss = true

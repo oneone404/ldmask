@@ -1,13 +1,13 @@
-param([string]$ModuleZip='D:\App\artifacts\ldmask-v1.0.6\OneOne.zip',
+param([string]$ModuleZip='D:\App\artifacts\ldmask-v1.0.8\LDLogin.zip',
     [string]$Adb='D:\LDPlayer\LDPlayer9\adb.exe', [string]$Serial='127.0.0.1:5559')
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $root='/data/local/tmp/ldmask-settings-fixture-'+[guid]::NewGuid().ToString('N')
 $local=Join-Path $PSScriptRoot '../app/build/native-settings-fixture'
 New-Item -ItemType Directory -Force $local | Out-Null
-$finder=Join-Path $local 'oneone_finder_v2'
+$finder=Join-Path $local 'ldlogin_finder'
 $zip=[IO.Compression.ZipFile]::OpenRead($ModuleZip)
-try { [IO.Compression.ZipFileExtensions]::ExtractToFile($zip.GetEntry('system/bin/oneone_finder_v2'),$finder,$true) }
+try { [IO.Compression.ZipFileExtensions]::ExtractToFile($zip.GetEntry('system/bin/ldlogin_finder'),$finder,$true) }
 finally { $zip.Dispose() }
 & $Adb -s $Serial shell mkdir -p $root
 if ($LASTEXITCODE) { throw 'Fixture mkdir failed' }

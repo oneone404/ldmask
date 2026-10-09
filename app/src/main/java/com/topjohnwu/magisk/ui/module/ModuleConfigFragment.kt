@@ -33,10 +33,10 @@ class ModuleConfigFragment : BaseFragment<FragmentModuleConfigBinding>() {
             binding.configFields.removeAllViews(); inputs.clear()
             binding.configSave.isEnabled = data != null && viewModel.busy.value != true
             if (data == null) return@observe
-            activity?.title = data.schema.title
+            activity?.setTitle(R.string.ldmask_login_configuration)
             for (field in data.schema.fields) {
                 val card = layoutInflater.inflate(R.layout.item_module_config_field, binding.configFields, false) as MaterialCardView
-                card.findViewById<TextView>(R.id.config_field_label).text = field.label
+                card.findViewById<TextView>(R.id.config_field_label).text = if (field.key == "enabled") "LDLogin" else field.label
                 val description = card.findViewById<TextView>(R.id.config_field_description)
                 description.text = field.description
                 description.visibility = if (field.description.isEmpty()) View.GONE else View.VISIBLE
