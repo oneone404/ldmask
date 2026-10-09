@@ -1,4 +1,7 @@
 <resources>
+    <string name="ldmask_save">Lưu</string>
+    <string name="ldmask_reload">Tải Lại</string>
+    <string name="ldmask_choose_modules">Chọn Module</string>
     <string name="ldmask_configuration">Cấu Hình</string>
     <string name="ldmask_system_install_unavailable">Cài trực tiếp /system yêu cầu root sẵn và môi trường chưa root bằng boot image. Không tự đổi phương pháp cài.</string>
     <string name="ldmask_cleanup">Xoá</string>

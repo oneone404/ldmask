@@ -77,7 +77,7 @@
 
     <string name="superuser_toggle_notification">Thông báo</string>
     <string name="superuser_toggle_revoke">Thu hồi</string>
-    <string name="superuser_policy_none">Chưa có ứng dụng nào yêu cầu Superuser.</string>
+    <string name="superuser_policy_none">Chưa Có Ứng Dụng Nào Yêu Cầu Superuser</string>
 
     <!--Logs-->
     <string name="log_data_none">Nhật ký của bạn đang trống, hãy thử sử dụng các ứng dụng root của bạn nhiều hơn</string>

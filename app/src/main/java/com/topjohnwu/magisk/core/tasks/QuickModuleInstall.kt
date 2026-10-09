@@ -17,12 +17,13 @@ interface QuickReleaseSource {
 
 data class QuickInstallResult(val success: Boolean, val installedCount: Int)
 
-/** Validate the complete pair before invoking root. No silent rollback or reboot. */
+/** Validate every selected module before invoking root. No silent rollback or reboot. */
 class QuickModuleInstall(
     private val cache: File,
     private val source: QuickReleaseSource,
     private val install: (File, QuickModule) -> Boolean,
-    private val log: (String) -> Unit
+    private val log: (String) -> Unit,
+    private val selectedIds: Set<String>? = null
 ) {
     suspend fun exec(): QuickInstallResult = withContext(Dispatchers.IO) {
         if (!ModuleInstallGate.acquire()) {
@@ -31,11 +32,13 @@ class QuickModuleInstall(
         }
         val work = File(cache, "ldmask-downloads/install-${UUID.randomUUID()}")
         var count = 0
+        var total = 0
         try {
             check(work.mkdirs()) { "Cannot create private download directory" }
             log("- Reading latest LDMask release")
             val release = source.latest()
-            val modules = source.manifest(release)
+            val modules = QuickModuleCatalog.select(source.manifest(release), selectedIds)
+            total = modules.size
             log("- Release ${release.tag}")
             for (module in modules) {
                 currentCoroutineContext().ensureActive()
@@ -52,16 +55,16 @@ class QuickModuleInstall(
                     log("- Installing ${module.id}")
                     check(install(File(work, module.asset.name), module)) { "Installation failed: ${module.id}" }
                     count++
-                    log("- Installed $count/2")
+                    log("- Installed $count/$total")
                 }
             }
-            log("- Complete 2/2. Reboot LD manually to activate modules.")
+            log("- Complete $total/$total. Reboot LD manually to activate modules.")
             QuickInstallResult(true, count)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             log("! ${e.message ?: e.javaClass.simpleName}")
-            log("! Installed $count/2. No automatic rollback or reboot.")
+            log("! Installed $count/$total. No automatic rollback or reboot.")
             QuickInstallResult(false, count)
         } finally {
             try {

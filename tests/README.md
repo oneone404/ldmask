@@ -26,6 +26,20 @@ prove them. Do not run destructive root tests on production LDs without approval
 toolbar action, fixed cleanup targets, root preflight, confirmation and timeout.
 It does not execute shell deletion/remount commands or prove their runtime behavior.
 
+## Native settings and server selection (v1.0.6)
+
+ModuleUiSchemaTest validates the actual OneOne descriptor, typed/default/ranged
+settings and rejection of commands/paths/duplicates/unknown properties. Host UI
+contracts cover native widgets, fixed backend, icon-only uninstall and compact cards.
+QuickModuleInstallTest adds single-selection and fail-closed publication cases.
+
+tests/test-native-settings.ps1 runs the unchanged module finder without root in an
+exact generated /data/local/tmp/ldmask-settings-fixture-* directory. It verifies
+missing/invalid settings defaults, writer round-trip, range rejection and symlink
+write refusal, then cleans only the validated fixture directory. Real bot settings
+and accounts are not touched. Android UI/root-repository click integration still
+requires user testing; these tests do not claim visual or live bot activation QA.
+
 ## Post-root preset (v1.0.5)
 
 Only after successful direct-system root installation, preset Zygisk=1,

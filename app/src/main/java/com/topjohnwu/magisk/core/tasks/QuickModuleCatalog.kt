@@ -33,21 +33,24 @@ object QuickModuleCatalog {
             require(url == "https://github.com/$REPO/releases/download/$tag/$name") { "Unexpected asset URL" }
             require(assets.put(name, ReleaseAsset(name, size, url)) == null) { "Duplicate asset" }
         }
-        require(assets.keys == moduleIds.keys + "modules.json") { "Release is missing module assets" }
+        require("modules.json" in assets) { "Release is missing manifest" }
         return ModuleRelease(tag, assets)
     }
 
-    fun manifest(text: String, release: ModuleRelease): List<QuickModule> {
+    fun manifest(text: String, release: ModuleRelease, published: Set<String>? = null): List<QuickModule> {
         val json = JSONObject(text)
-        require(json.getInt("schema") == 1 && json.getString("release") == release.tag) { "Manifest version mismatch" }
+        require(json.getInt("schema") in 1..2 && json.getString("release") == release.tag) { "Manifest version mismatch" }
         val array = json.getJSONArray("modules")
-        require(array.length() == 2) { "Expected exactly two modules" }
+        require(array.length() in 0..2) { "Too many modules" }
         val result = linkedMapOf<String, QuickModule>()
+        val seen = hashSetOf<String>()
         for (i in 0 until array.length()) {
             val item = array.getJSONObject(i)
             val name = item.getString("asset")
             val id = item.getString("id")
             require(moduleIds[name] == id) { "Unexpected module ID" }
+            require(seen.add(id)) { "Duplicate module" }
+            if (published != null && id !in published) continue
             val asset = requireNotNull(release.assets[name])
             require(item.getLong("size") == asset.size) { "Manifest size mismatch" }
             val code = item.getInt("versionCode")
@@ -55,7 +58,34 @@ object QuickModuleCatalog {
             require(code > 0 && hash.matches(Regex("[a-f0-9]{64}"))) { "Invalid module metadata" }
             require(result.put(name, QuickModule(id, asset, code, hash)) == null) { "Duplicate module" }
         }
-        return moduleIds.keys.map { requireNotNull(result[it]) }
+        return moduleIds.keys.mapNotNull { result[it] }
+    }
+
+    fun publication(text: String): Map<String, String> {
+        require(text.toByteArray().size <= 16384)
+        val json = JSONObject(text)
+        require(json.getInt("schema") == 1)
+        val rows = json.getJSONArray("modules")
+        require(rows.length() <= 2)
+        val seen = hashSetOf<String>()
+        val visible = linkedMapOf<String, String>()
+        for (i in 0 until rows.length()) {
+            val row = rows.getJSONObject(i)
+            val id = row.getString("id")
+            require(id in moduleIds.values && seen.add(id)) { "Unknown/duplicate module" }
+            val flag = row.get("published")
+            require(flag is Boolean) { "published must be boolean" }
+            val name = row.getString("name")
+            require(name.length in 1..64 && name.none { it < ' ' })
+            if (flag == true) visible[id] = name
+        }
+        return visible
+    }
+
+    fun select(available: List<QuickModule>, requested: Set<String>?): List<QuickModule> {
+        val ids = requested ?: available.map { it.id }.toSet()
+        require(ids.isNotEmpty() && ids.size <= 2 && available.map { it.id }.toSet().containsAll(ids)) { "Selected module is no longer published/available" }
+        return available.filter { it.id in ids }
     }
 
     fun validate(file: File, module: QuickModule) {

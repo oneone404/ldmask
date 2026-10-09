@@ -1,4 +1,7 @@
 <resources>
+    <string name="ldmask_save">Save</string>
+    <string name="ldmask_reload">Reload</string>
+    <string name="ldmask_choose_modules">Choose Modules</string>
     <string name="ldmask_configuration">Configuration</string>
     <string name="ldmask_ramdisk" translatable="false">Ramdisk</string>
     <string name="ldmask_app_label" translatable="false">LDMask</string>

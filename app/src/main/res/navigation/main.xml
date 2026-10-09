@@ -103,6 +103,15 @@
         app:popUpTo="@id/homeFragment"
         app:popUpToInclusive="true" />
 
+    <fragment android:id="@+id/moduleConfigFragment"
+        android:name="com.topjohnwu.magisk.ui.module.ModuleConfigFragment"
+        tools:layout="@layout/fragment_module_config">
+        <argument android:name="moduleId" app:argType="string" />
+    </fragment>
+    <action android:id="@+id/action_moduleConfigFragment" app:destination="@id/moduleConfigFragment"
+        app:enterAnim="@anim/fragment_enter" app:exitAnim="@anim/fragment_exit"
+        app:popEnterAnim="@anim/fragment_enter_pop" app:popExitAnim="@anim/fragment_exit_pop" />
+
     <action
         android:id="@+id/action_superuserFragment"
         app:destination="@id/superuserFragment"

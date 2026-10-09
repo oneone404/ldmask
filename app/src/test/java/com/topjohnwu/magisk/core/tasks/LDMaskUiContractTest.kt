@@ -80,7 +80,10 @@ class LDMaskUiContractTest {
         assertTrue(install.contains("quickInstallPressed()"))
         val card = source("res/layout/item_module_md2.xml")
         assertFalse(card.contains("module_state_icon"))
-        assertTrue(card.contains("ldmask_pending_removal"))
+        assertFalse(card.contains("ldmask_pending_removal"))
+        assertFalse(card.contains("module_version_author"))
+        assertFalse(card.contains("module_description"))
+        assertEquals(1, Regex("<TextView").findAll(card).count())
         assertTrue(card.contains("@={item.enabled}"))
     }
 
@@ -138,8 +141,9 @@ class LDMaskUiContractTest {
         assertFalse(xml.contains("@drawable/ic_update_md2"))
         assertTrue(xml.contains("@drawable/ic_install"))
         assertTrue(xml.contains("android:contentDescription="))
-        val actions = xml.substringAfter("android:gravity=\"end\"")
-        assertFalse(actions.contains("android:text="))
+        Regex("<androidx.appcompat.widget.AppCompatImageButton[\\s\\S]*?/>").findAll(xml).forEach {
+            assertFalse(it.value.contains("android:text="))
+        }
         val item = source("java/com/topjohnwu/magisk/ui/module/ModuleRvItem.kt")
         assertTrue(item.contains("item.updateInfo != null && item.outdated && !isRemoved && !isUpdated"))
         val install = source("res/layout/item_module_download.xml")
@@ -212,5 +216,22 @@ class LDMaskUiContractTest {
         }
         assertTrue(source("java/com/topjohnwu/magisk/ui/settings/SettingsFragment.kt").contains("R.string.ldmask_configuration"))
         assertTrue(source("res/values-vi/ldmask.xml").contains(">Cấu Hình<"))
+    }
+
+    @Test fun nativeConfigHasNoWebViewAndOnlyFixedSettingsBackend() {
+        val fragment = source("java/com/topjohnwu/magisk/ui/module/ModuleConfigFragment.kt")
+        assertTrue(fragment.contains("SwitchMaterial"))
+        assertTrue(fragment.contains("TextInputEditText"))
+        assertFalse(fragment.contains("WebView"))
+        val repo = source("java/com/topjohnwu/magisk/core/tasks/ModuleUiRepository.kt")
+        assertTrue(repo.contains("/data/adb/oneone/settings.json"))
+        assertTrue(repo.contains("--save-settings"))
+        assertTrue(repo.contains("snapshot.fingerprint"))
+        assertTrue(repo.contains("timeout -s TERM -k 2 10"))
+        assertFalse(repo.contains("schema.command"))
+        val card = source("res/layout/item_module_md2.xml")
+        assertTrue(card.contains("configurePressed(item)"))
+        assertFalse(card.contains("module_notice_text"))
+        assertFalse(source("res/layout/fragment_home_md2.xml").contains("android:text=\"@string/uninstall_magisk_title\""))
     }
 }

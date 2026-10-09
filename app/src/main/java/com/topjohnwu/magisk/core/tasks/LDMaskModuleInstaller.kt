@@ -14,8 +14,11 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-private class GitHubModuleSource : QuickReleaseSource {
+internal class GitHubModuleSource : QuickReleaseSource {
+    private var names: Map<String, String> = emptyMap()
     private val client = ServiceLocator.okhttp.newBuilder().apply {
         cache(null)
         interceptors().removeAll { it is HttpLoggingInterceptor }
@@ -33,6 +36,7 @@ private class GitHubModuleSource : QuickReleaseSource {
             checkUrl(url)
             val request = Request.Builder().url(url)
                 .header("Accept", "application/vnd.github+json")
+                .header("Cache-Control", "no-cache")
                 .header("X-GitHub-Api-Version", "2022-11-28").build()
             val result = client.newCall(request).execute()
             if (result.code in setOf(301, 302, 303, 307, 308)) {
@@ -54,7 +58,7 @@ private class GitHubModuleSource : QuickReleaseSource {
 
     private fun checkUrl(url: HttpUrl) {
         require(url.isHttps && url.port == 443 && url.username.isEmpty() && url.password.isEmpty()) { "Unsafe download URL" }
-        require(url.host in setOf("api.github.com", "github.com", "release-assets.githubusercontent.com", "objects.githubusercontent.com")) { "Unexpected download host" }
+        require(url.host in setOf("api.github.com", "github.com", "raw.githubusercontent.com", "release-assets.githubusercontent.com", "objects.githubusercontent.com")) { "Unexpected download host" }
     }
 
     override fun latest(): ModuleRelease = response(
@@ -65,13 +69,18 @@ private class GitHubModuleSource : QuickReleaseSource {
     }
 
     override fun manifest(release: ModuleRelease): List<QuickModule> {
+        names = response("https://raw.githubusercontent.com/${QuickModuleCatalog.REPO}/main/catalog.json").use {
+            QuickModuleCatalog.publication(requireNotNull(it.body).byteStream().readBytesBounded(16384).toString(Charsets.UTF_8))
+        }
         val asset = requireNotNull(release.assets["modules.json"])
         return response(asset.url).use { res ->
             val bytes = requireNotNull(res.body).byteStream().readBytesBounded(16384)
             require(bytes.size.toLong() == asset.size) { "Manifest download incomplete" }
-            QuickModuleCatalog.manifest(bytes.toString(Charsets.UTF_8), release)
+            QuickModuleCatalog.manifest(bytes.toString(Charsets.UTF_8), release, names.keys)
         }
     }
+
+    fun label(id: String) = names.getValue(id)
 
     override fun download(asset: ReleaseAsset, target: File) {
         response(asset.url).use { res ->
@@ -99,7 +108,12 @@ private class GitHubModuleSource : QuickReleaseSource {
 object LDMaskModuleInstaller {
     private fun quote(value: String) = "'" + value.replace("'", "'\\''") + "'"
 
-    suspend fun exec(log: (String) -> Unit): QuickInstallResult {
+    suspend fun available(): List<Pair<String, String>> = withContext(Dispatchers.IO) {
+        val source = GitHubModuleSource()
+        source.manifest(source.latest()).map { it.id to source.label(it.id) }
+    }
+
+    suspend fun exec(log: (String) -> Unit, selectedIds: Set<String>? = null): QuickInstallResult {
         if (!Info.env.isActive) {
             log("! Root is not active. Install LDMask root first.")
             return QuickInstallResult(false, 0)
@@ -126,7 +140,7 @@ object LDMaskModuleInstaller {
                 "grep -qxF ${quote("id=${module.id}")} $prop && " +
                     "grep -qxF ${quote("versionCode=${module.versionCode}")} $prop"
             ).exec().isSuccess
-        }, boundedLog).exec()
+        }, boundedLog, selectedIds).exec()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

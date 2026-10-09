@@ -1,0 +1,20 @@
+{
+  "schema": 2,
+  "release": "v1.0.6",
+  "modules": [
+    {
+      "id": "oneone",
+      "asset": "OneOne.zip",
+      "versionCode": 24,
+      "size": 154605,
+      "sha256": "4fc7f1f4d07c9f992dcf12bd83a0f8f07117ee65d4fb54ae4dd012ddfa48b755"
+    },
+    {
+      "id": "ktools_zygisk",
+      "asset": "Module.zip",
+      "versionCode": 1,
+      "size": 2984559,
+      "sha256": "5478987117093abe95cf8d7532e6005cd88f75d3f6b913418ed9f419b73ed22c"
+    }
+  ]
+}

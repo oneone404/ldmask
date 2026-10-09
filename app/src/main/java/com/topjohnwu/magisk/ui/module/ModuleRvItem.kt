@@ -3,15 +3,13 @@ package com.topjohnwu.magisk.ui.module
 import androidx.databinding.Bindable
 import com.topjohnwu.magisk.BR
 import com.topjohnwu.magisk.R
-import com.topjohnwu.magisk.core.Info
+import com.topjohnwu.magisk.core.utils.RootUtils
 import com.topjohnwu.magisk.core.model.module.LocalModule
 import com.topjohnwu.magisk.databinding.DiffItem
 import com.topjohnwu.magisk.databinding.ItemWrapper
 import com.topjohnwu.magisk.databinding.ObservableRvItem
 import com.topjohnwu.magisk.databinding.RvItem
 import com.topjohnwu.magisk.databinding.set
-import com.topjohnwu.magisk.utils.TextHolder
-import com.topjohnwu.magisk.utils.asText
 
 object InstallModule : RvItem(), DiffItem<InstallModule> {
     override val layoutRes = R.layout.item_module_download
@@ -22,25 +20,6 @@ class LocalModuleRvItem(
 ) : ObservableRvItem(), DiffItem<LocalModuleRvItem>, ItemWrapper<LocalModule> {
 
     override val layoutRes = R.layout.item_module_md2
-
-    val showNotice: Boolean
-    val noticeText: TextHolder
-
-    init {
-        val isZygisk = item.isZygisk
-        val isRiru = item.isRiru
-        val zygiskUnloaded = isZygisk && item.zygiskUnloaded
-
-        showNotice = zygiskUnloaded ||
-            (Info.isZygiskEnabled && isRiru) ||
-            (!Info.isZygiskEnabled && isZygisk)
-        noticeText =
-            when {
-                zygiskUnloaded -> R.string.zygisk_module_unloaded.asText()
-                isRiru -> R.string.suspend_text_riru.asText(R.string.zygisk.asText())
-                else -> R.string.suspend_text_zygisk.asText(R.string.zygisk.asText())
-            }
-    }
 
     @get:Bindable
     var isEnabled = item.enable
@@ -61,6 +40,10 @@ class LocalModuleRvItem(
     val updateReady get() = item.outdated && !isRemoved && isEnabled
 
     val isUpdated = item.updated
+
+    val hasConfiguration = item.id == "oneone" && listOf("modules", "modules_update").any {
+        RootUtils.fs.getFile("/data/adb/$it/oneone/ui.json").isFile
+    }
 
     fun fetchedUpdateInfo() {
         notifyPropertyChanged(BR.showUpdate)

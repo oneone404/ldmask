@@ -50,10 +50,11 @@ Run JVM tests with `gradlew :app:testDebugUnitTest -PconfigPath=config.ldmask.pr
 
 ## Quick module installation
 
-The Modules tab downloads `modules.json`, `OneOne.zip` and `Module.zip` from
+The Tools tab downloads release `modules.json` and selected ZIPs from
 `https://api.github.com/repos/oneone404/ldmask/releases/latest`. Only published,
-stable releases with the complete pair and matching fixed IDs are accepted.
-Both ZIPs are checked before either root command runs. Temporary files are
+stable releases with integrity metadata and matching fixed IDs are accepted.
+Server `catalog.json` controls publication and the native picker selects one or both.
+All selected ZIPs are checked before any root command runs. Temporary files are
 private to the app cache and removed in `finally`; app/process termination can
 leave a temporary directory behind. Root installs are serialized with the
 existing manual ZIP installer and use a 180-second BusyBox timeout per module.
@@ -115,9 +116,9 @@ or unknown state fails visibly; no silent success. The kernel may still refuse
 RO remount; in that case reboot LD and re-check. This is not a blanket guarantee
 that mounts can always be restored during a running session.
 
-This source has no KernelSU-style module WebUI host or module action/configuration
-button. OneOne settings require its separate settings UI or a future dedicated
-LDMask screen; this release does not add that configuration UI.
+This source has no KernelSU-style WebUI/script action host. Since v1.0.6, OneOne
+with ui.json has a native gear screen; see docs/module-ui.md. No arbitrary root
+commands or config paths can be supplied by module JSON.
 
 ## Icon-only actions and direct root install (v1.0.4)
 

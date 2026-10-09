@@ -3,6 +3,11 @@ package com.topjohnwu.magisk.ui.module
 import android.net.Uri
 import androidx.databinding.Bindable
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
+import com.topjohnwu.magisk.core.tasks.LDMaskModuleInstaller
+import com.topjohnwu.magisk.dialog.ChooseModulesDialog
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import com.topjohnwu.magisk.BR
 import com.topjohnwu.magisk.MainDirections
 import com.topjohnwu.magisk.R
@@ -86,14 +91,34 @@ class ModuleViewModel : AsyncLoadViewModel() {
         GetContentEvent("application/zip", UriCallback()).publish()
     }
 
+    private var choosing = false
     fun quickInstallPressed() {
-        if (Info.env.isActive) {
-            MainDirections.actionFlashFragment(Const.Value.FLASH_LDMASK_MODULES, null).navigate()
+        if (!Info.env.isActive || choosing) return
+        choosing = true
+        viewModelScope.launch {
+            try {
+                val modules = LDMaskModuleInstaller.available()
+                if (modules.isEmpty()) SnackbarEvent("Không có module được phát hành").publish()
+                else ChooseModulesDialog(this@ModuleViewModel, modules).show()
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { SnackbarEvent("Không lấy được danh sách module: ${e.message}").publish() }
+            finally { choosing = false }
         }
+    }
+
+    fun confirmQuickInstall(ids: Set<String>) {
+        require(ids.isNotEmpty() && ids.all { it in setOf("oneone", "ktools_zygisk") })
+        MainDirections.actionFlashFragment(Const.Value.FLASH_LDMASK_MODULES,
+            Uri.parse("ldmask://modules?ids=${ids.joinToString(",")}")).navigate()
     }
 
     fun removeSystemSuPressed() {
         if (Info.env.isActive) RemoveSystemSuDialog(this).show()
+    }
+
+    fun configurePressed(item: LocalModuleRvItem) {
+        if (Info.env.isActive && item.hasConfiguration && !item.isRemoved)
+            MainDirections.actionModuleConfigFragment(item.item.id).navigate()
     }
 
     fun confirmRemoveSystemSu() {

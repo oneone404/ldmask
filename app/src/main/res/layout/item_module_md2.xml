@@ -1,63 +1,29 @@
-<?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<layout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
     <data>
         <variable name="item" type="com.topjohnwu.magisk.ui.module.LocalModuleRvItem" />
         <variable name="viewModel" type="com.topjohnwu.magisk.ui.module.ModuleViewModel" />
     </data>
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/module" style="@style/WidgetFoundation.Card"
+    <com.google.android.material.card.MaterialCardView android:id="@+id/module" style="@style/WidgetFoundation.Card"
         android:layout_width="match_parent" android:layout_height="wrap_content">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical" android:paddingStart="16dp" android:paddingEnd="12dp"
-            android:paddingTop="8dp" android:paddingBottom="4dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="horizontal" android:gravity="center_vertical">
-                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
-                    android:layout_weight="1" android:orientation="vertical">
-                    <TextView android:id="@+id/module_title" strikeThrough="@{item.removed}"
-                        android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:text="@{item.item.name}" android:textStyle="bold" android:maxLines="1"
-                        android:ellipsize="end" android:textAppearance="@style/AppearanceFoundation.Body" />
-                    <TextView android:id="@+id/module_version_author"
-                        android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:text="@{@string/module_version_author(item.item.version, item.item.author)}"
-                        android:maxLines="1" android:ellipsize="end"
-                        android:textAppearance="@style/AppearanceFoundation.Caption.Variant" />
-                </LinearLayout>
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/module_indicator" android:layout_width="wrap_content"
-                    android:layout_height="48dp" android:layout_marginStart="12dp"
-                    android:contentDescription="@{item.item.name}" android:checked="@={item.enabled}"
-                    android:enabled="@{!item.removed}" />
-            </LinearLayout>
-            <TextView android:id="@+id/module_description" gone="@{item.item.description.empty}"
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@{item.item.description}" android:maxLines="1" android:ellipsize="end"
-                android:textAppearance="@style/AppearanceFoundation.Caption.Variant" />
-            <TextView goneUnless="@{item.removed || item.updated}"
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@{item.removed ? @string/ldmask_pending_removal : @string/ldmask_pending_update}"
-                android:textAppearance="@style/AppearanceFoundation.Caption.Primary" />
-            <TextView android:id="@+id/module_notice_text" goneUnless="@{item.showNotice}"
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@{item.noticeText}" android:textColor="?colorError"
-                android:textAppearance="@style/AppearanceFoundation.Caption.Primary" />
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:gravity="end" android:orientation="horizontal">
-                <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/module_update"
-                    style="@style/Widget.LDMask.IconAction" goneUnless="@{item.showUpdate}"
-                    android:enabled="@{item.updateReady}" android:contentDescription="@string/install"
-                    android:onClick="@{() -> viewModel.downloadPressed(item.item.updateInfo)}"
-                    app:tint="?colorPrimary" app:srcCompat="@drawable/ic_install" />
-                <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/module_remove"
-                    style="@style/Widget.LDMask.IconAction"
-                    android:enabled="@{!item.updated}"
-                    android:contentDescription="@{item.removed ? @string/module_state_restore : @string/module_state_remove}"
-                    android:onClick="@{() -> item.delete()}"
-                    app:tint="?colorPrimary"
-                    app:srcCompat="@{item.removed ? @drawable/ic_restart : @drawable/ic_delete_md2}" />
-            </LinearLayout>
+            android:gravity="center_vertical" android:paddingStart="16dp" android:paddingEnd="8dp" android:paddingTop="4dp" android:paddingBottom="4dp">
+            <TextView android:id="@+id/module_title" strikeThrough="@{item.removed}"
+                android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+                android:text="@{item.item.name}" android:textStyle="bold" android:maxLines="1" android:ellipsize="end"
+                android:textAppearance="@style/AppearanceFoundation.Body" />
+            <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/module_indicator"
+                android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="8dp"
+                android:contentDescription="@{item.item.name}" android:checked="@={item.enabled}" android:enabled="@{!item.removed}" />
+            <androidx.appcompat.widget.AppCompatImageButton style="@style/Widget.LDMask.IconAction"
+                goneUnless="@{item.hasConfiguration}" android:enabled="@{!item.removed}" android:contentDescription="@string/ldmask_configuration"
+                android:onClick="@{() -> viewModel.configurePressed(item)}" app:tint="?colorPrimary" app:srcCompat="@drawable/ic_settings_md2" />
+            <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/module_update" style="@style/Widget.LDMask.IconAction"
+                goneUnless="@{item.showUpdate}" android:enabled="@{item.updateReady}" android:contentDescription="@string/install"
+                android:onClick="@{() -> viewModel.downloadPressed(item.item.updateInfo)}" app:tint="?colorPrimary" app:srcCompat="@drawable/ic_install" />
+            <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/module_remove" style="@style/Widget.LDMask.IconAction"
+                android:enabled="@{!item.updated}" android:contentDescription="@{item.removed ? @string/module_state_restore : @string/module_state_remove}"
+                android:onClick="@{() -> item.delete()}" app:tint="?colorPrimary"
+                app:srcCompat="@{item.removed ? @drawable/ic_restart : @drawable/ic_delete_md2}" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 </layout>

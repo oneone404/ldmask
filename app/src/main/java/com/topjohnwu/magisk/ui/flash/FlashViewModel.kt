@@ -78,10 +78,15 @@ class FlashViewModel : BaseViewModel() {
                 }
                 Const.Value.FLASH_LDMASK_MODULES -> {
                     showReboot = false
-                    val handler = Handler(Looper.getMainLooper())
-                    val result = LDMaskModuleInstaller.exec { line ->
-                        handler.post { outItems.add(line) }
+                    val ids = uri?.takeIf { it.scheme == "ldmask" && it.host == "modules" }
+                        ?.getQueryParameter("ids")?.split(',')?.toSet()
+                    if (ids.isNullOrEmpty() || ids.any { it !in setOf("oneone", "ktools_zygisk") }) {
+                        outItems.add("! No valid module selection"); onResult(false); return@launch
                     }
+                    val handler = Handler(Looper.getMainLooper())
+                    val result = LDMaskModuleInstaller.exec({ line ->
+                        handler.post { outItems.add(line) }
+                    }, ids)
                     showReboot = result.installedCount > 0
                     result.success
                 }

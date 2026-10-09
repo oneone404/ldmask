@@ -39,11 +39,11 @@ class QuickModuleInstallTest {
         override fun download(asset: ReleaseAsset, target: File) { target.writeBytes(blobs[if (asset.name == "OneOne.zip") 0 else 1]) }
     }
 
-    private fun scenario(source: QuickReleaseSource, failAt: Int = -1): Pair<QuickInstallResult, Int> = runBlocking {
+    private fun scenario(source: QuickReleaseSource, failAt: Int = -1, selected: Set<String>? = null): Pair<QuickInstallResult, Int> = runBlocking {
         val dir = Files.createTempDirectory("ldmask-test").toFile()
         var calls = 0
         try {
-            val result = QuickModuleInstall(dir, source, { _, _ -> calls++; calls != failAt }, {}).exec()
+            val result = QuickModuleInstall(dir, source, { _, _ -> calls++; calls != failAt }, {}, selected).exec()
             assertEquals(0, File(dir, "ldmask-downloads").listFiles()?.size ?: 0)
             result to calls
         } finally { dir.deleteRecursively() }
@@ -54,6 +54,21 @@ class QuickModuleInstallTest {
     }
     @Test fun badSecondHashInstallsNothing() {
         assertEquals(QuickInstallResult(false, 0) to 0, scenario(Source(listOf(zip("oneone"), zip("ktools_zygisk")), true)))
+    }
+    @Test fun installsOnlySelectedModuleAndDoesNotDownloadBadUnselectedZip() {
+        assertEquals(QuickInstallResult(true, 1) to 1, scenario(Source(listOf(zip("oneone"), zip("ktools_zygisk")), true), selected=setOf("oneone")))
+    }
+    @Test fun hiddenOrEmptySelectionInstallsNothing() {
+        val source = Source(listOf(zip("oneone"), zip("ktools_zygisk")))
+        assertEquals(QuickInstallResult(false, 0) to 0, scenario(source, selected=emptySet()))
+        assertEquals(QuickInstallResult(false, 0) to 0, scenario(source, selected=setOf("foreign")))
+    }
+    @Test fun publicationIsServerControlledAndFailsClosed() {
+        val json = """{"schema":1,"modules":[{"id":"oneone","name":"OneOne","published":true},{"id":"ktools_zygisk","name":"ktools","published":false}]}"""
+        assertEquals(mapOf("oneone" to "OneOne"), QuickModuleCatalog.publication(json))
+        assertTrue(QuickModuleCatalog.publication("""{"schema":1,"modules":[]}""").isEmpty())
+        assertTrue(runCatching { QuickModuleCatalog.publication(json.replace("true", "\"true\"")) }.isFailure)
+        assertTrue(runCatching { QuickModuleCatalog.publication(json.replace("ktools_zygisk", "oneone")) }.isFailure)
     }
     @Test fun wrongSecondIdInstallsNothing() {
         assertEquals(QuickInstallResult(false, 0) to 0, scenario(Source(listOf(zip("oneone"), zip("wrong")))))
