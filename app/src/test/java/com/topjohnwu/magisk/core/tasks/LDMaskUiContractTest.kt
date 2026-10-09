@@ -57,8 +57,30 @@ class LDMaskUiContractTest {
         assertTrue(dialog.contains("ButtonType.NEGATIVE"))
         assertTrue(task.contains("ModuleInstallGate.acquire()"))
         assertTrue(task.contains("ModuleInstallGate.release()"))
-        assertTrue(task.contains("timeout -s TERM -k 5 30"))
+        assertTrue(task.contains("boundedCommand(script, 30)"))
+        assertTrue(task.contains("timeout -s TERM -k 5 \$seconds"))
         assertFalse(task.contains("reboot("))
+    }
+
+    @Test fun suRemovalSuccessRequiresVerifiedAbsenceNotSuccessfulRemount() {
+        val task = source("java/com/topjohnwu/magisk/core/tasks/RemoveSystemSu.kt")
+        assertTrue(task.contains("boundedCommand(verifier, 10)"))
+        assertTrue(task.contains("verified.isSuccess && \"LDMASK_SYSTEM_SU_REMOVED\" in verified.out"))
+        assertFalse(task.contains("val success = result.isSuccess"))
+        val script = source("res/raw/ldmask_verify_system_su.sh")
+        assertTrue(script.contains("for TARGET in /system/bin/su /system/xbin/su; do"))
+        assertTrue(script.contains("[ ! -e \"\$TARGET\" ] && [ ! -L \"\$TARGET\" ]"))
+        assertTrue(script.contains("\"\$ROOT_TMP/su\" -c id"))
+        assertTrue(script.contains("LDMASK_SYSTEM_SU_REMOVED"))
+        assertFalse(script.contains("rm -"))
+        assertFalse(script.contains("mount -"))
+    }
+
+    @Test fun toolsHasNoEmptyModulesMessage() {
+        val xml = source("res/layout/fragment_module_md2.xml")
+        assertFalse(xml.contains("@string/module_empty"))
+        assertTrue(xml.contains("@+id/module_list"))
+        assertTrue(xml.contains("@{viewModel.loading}"))
     }
 
     @Test fun settingsOnlyExposeRequestedMagiskControls() {

@@ -7,6 +7,12 @@ It never executes the real mount/su command or touches installed modules. Fixtur
 cleanup is guarded to the exact generated test tree. This verifies shell control
 flow, not a real kernel remount or UI integration.
 
+Since v1.0.12, the removal worker separately verifies both fixed Su paths are
+absent (including symlinks) and independent Magisk root works. The UI reports
+verified deletion as success even if the cleanup script could not restore a
+read-only mount; warnings and its pending mount state remain intact. The fixture
+also tests this verifier with writable mounts, remaining files and dangling links.
+
 `gradlew :app:testDebugUnitTest -PconfigPath=config.ldmask.prop`
 
 The quick-installer JVM suite uses fake network/root implementations, so no

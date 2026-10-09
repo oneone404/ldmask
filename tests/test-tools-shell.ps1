@@ -3,8 +3,10 @@ $ErrorActionPreference='Stop'
 # Runtime fixture files only: no root, real remount, su, module, or APK action.
 $root='/data/local/tmp/ldmask-fixture-' + [guid]::NewGuid().ToString('N')
 $su=Get-Content -Raw (Join-Path $PSScriptRoot '../app/src/main/res/raw/ldmask_remove_system_su.sh')
+$verify=Get-Content -Raw (Join-Path $PSScriptRoot '../app/src/main/res/raw/ldmask_verify_system_su.sh')
 $all=Get-Content -Raw (Join-Path $PSScriptRoot '../app/src/main/res/raw/ldmask_remove_all_modules.sh')
 $su=$su.Replace('/system/', "$root/system/").Replace('/data/adb', "$root/data/adb").Replace('/sbin', "$root/sbin").Replace('/proc/mounts', "$root/mounts")
+$verify=$verify.Replace('/system/', "$root/system/").Replace('/sbin', "$root/sbin")
 $all=$all.Replace('/data/adb', "$root/data/adb")
 function Quote-TestShell([string]$value) { "'" + $value.Replace("'", "'\''") + "'" }
 $header=@'
@@ -62,6 +64,7 @@ mount() {
 $header=$header.Replace('__ROOT__', (Quote-TestShell $root))
 $mock=$mock.Replace('__ROOT__', (Quote-TestShell $root))
 $runSu="(`n$mock`n$su`n) > `"`$ROOT/output`" 2>&1`nSTATUS=`$?`n"
+$runVerify="(`n$mock`n$verify`n) > `"`$ROOT/output`" 2>&1`nSTATUS=`$?`n"
 $runAll="(`n$mock`n$all`n) > `"`$ROOT/output`" 2>&1`nSTATUS=`$?`n"
 $program=$header + "`nreset`n" + $runSu + @'
 assert_case absent_ro 0 "$STATUS"
@@ -77,6 +80,8 @@ touch "$ROOT/system/xbin/su" "$ROOT/deny-ro"
 assert_case restore_refused 1 "$STATUS"
 [ ! -e "$ROOT/system/xbin/su" ] && [ -f "$ROOT/data/adb/ldmask/system-su-ro-pending" ] && grep -q ' rw,' "$ROOT/mounts"
 assert_case partial_result_persisted 0 "$?"
+'@ + "`n$runVerify" + @'
+assert_case verification_succeeds_after_failed_remount 0 "$STATUS"
 '@ + "`n$runSu" + @'
 assert_case second_click_still_fails 1 "$STATUS"
 rm -f "$ROOT/deny-ro"
@@ -88,6 +93,21 @@ reset
 printf 'mock / ext4 rw,relatime 0 0\n' > "$ROOT/mounts"
 '@ + "`n$runSu" + @'
 assert_case old_version_rw_not_success 1 "$STATUS"
+'@ + "`n$runVerify" + @'
+assert_case verified_absence_despite_rw 0 "$STATUS"
+grep -qx LDMASK_SYSTEM_SU_REMOVED "$ROOT/output"
+assert_case verified_success_marker 0 "$?"
+touch "$ROOT/system/bin/su"
+'@ + "`n$runVerify" + @'
+assert_case remaining_su_not_success 1 "$STATUS"
+rm -f "$ROOT/system/bin/su"
+ln -s /nonexistent-fixture-target "$ROOT/system/xbin/su"
+'@ + "`n$runVerify" + @'
+assert_case dangling_su_not_success 1 "$STATUS"
+reset
+rm -f "$ROOT/sbin/su"
+'@ + "`n$runVerify" + @'
+assert_case lost_independent_root_not_success 1 "$STATUS"
 reset
 mkdir -p "$ROOT/data/adb/modules/oneone" "$ROOT/data/adb/modules_update/oneone" "$ROOT/data/adb/modules_update/ktools_zygisk"
 '@ + "`n$runAll" + @'
