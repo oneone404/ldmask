@@ -6,6 +6,7 @@ import com.topjohnwu.magisk.arch.BaseViewModel
 import com.topjohnwu.magisk.core.tasks.ModuleUiRepository
 import com.topjohnwu.magisk.core.tasks.ModuleUiSnapshot
 import com.topjohnwu.magisk.core.tasks.LDLoginUiSettings
+import com.topjohnwu.magisk.core.tasks.LDMaskGameLauncher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -45,6 +46,18 @@ class ModuleConfigViewModel : BaseViewModel() {
                 message.value = ""
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { message.value = "${e.message}. Nếu dữ liệu đã đổi, bấm Tải Lại trước khi lưu." }
+            finally { busy.value = false }
+        }
+    }
+    fun openGame() {
+        if (busy.value == true || moduleId != "ldlogin") return
+        busy.value = true
+        viewModelScope.launch {
+            try {
+                LDMaskGameLauncher.exec()
+                message.value = ""
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { message.value = e.message.orEmpty() }
             finally { busy.value = false }
         }
     }

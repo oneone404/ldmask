@@ -20,6 +20,7 @@ class ModuleConfigFragment : BaseFragment<FragmentModuleConfigBinding>() {
         super.onViewCreated(view, savedInstanceState)
         binding.configSave.setOnClickListener { viewModel.save() }
         binding.configReload.setOnClickListener { viewModel.reload() }
+        binding.configOpenGame.setOnClickListener { viewModel.openGame() }
         viewModel.message.observe(viewLifecycleOwner) {
             binding.configMessage.text = it
             binding.configMessage.visibility = if (it.isNullOrBlank()) View.GONE else View.VISIBLE
@@ -28,6 +29,7 @@ class ModuleConfigFragment : BaseFragment<FragmentModuleConfigBinding>() {
             inputs.forEach { it.isEnabled = !busy }
             binding.configSave.isEnabled = !busy && viewModel.snapshot.value != null
             binding.configReload.isEnabled = !busy
+            binding.configOpenGame.isEnabled = !busy
         }
         viewModel.snapshot.observe(viewLifecycleOwner) { data ->
             binding.configFields.removeAllViews(); inputs.clear()

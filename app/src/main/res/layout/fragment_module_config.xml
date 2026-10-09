@@ -12,6 +12,9 @@
                 <com.google.android.material.button.MaterialButton android:id="@+id/config_reload" style="@style/WidgetFoundation.Button.Outlined"
                     android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
                     android:minHeight="48dp" android:layout_marginStart="8dp" android:text="@string/ldmask_reload" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/config_open_game" style="@style/WidgetFoundation.Button.Outlined"
+                    android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+                    android:minHeight="48dp" android:layout_marginStart="8dp" android:text="@string/ldmask_open_game" />
             </LinearLayout>
             <TextView android:id="@+id/config_message" android:layout_width="match_parent"
                 android:layout_height="wrap_content" android:layout_marginTop="8dp" android:visibility="gone"

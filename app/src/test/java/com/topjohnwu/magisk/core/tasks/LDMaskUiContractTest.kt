@@ -257,7 +257,7 @@ class LDMaskUiContractTest {
         assertTrue(fragment.contains("if (field.key == \"enabled\") \"LDLogin\""))
         assertFalse(fragment.contains("chooseGame"))
         val vm = source("java/com/topjohnwu/magisk/ui/module/ModuleConfigViewModel.kt")
-        assertEquals(2, Regex("message.value = \"\"").findAll(vm).count())
+        assertEquals(3, Regex("message.value = \"\"").findAll(vm).count())
         assertFalse(vm.contains("Thiếu hoặc hỏng cấu hình"))
     }
 
@@ -275,6 +275,32 @@ class LDMaskUiContractTest {
         val labels = source("res/values-vi/ldmask.xml")
         assertTrue(labels.contains(">Xoá All Module<"))
         assertTrue(labels.contains(">Xoá Su Bin/Xbin<"))
+    }
+
+    @Test fun gameLaunchIsRootOnlyBoundedAndAfterReloadWithoutSaving() {
+        val layout = source("res/layout/fragment_module_config.xml")
+        assertTrue(layout.indexOf("@+id/config_open_game") > layout.indexOf("@+id/config_reload"))
+        assertTrue(layout.contains("@string/ldmask_open_game"))
+        val fragment = source("java/com/topjohnwu/magisk/ui/module/ModuleConfigFragment.kt")
+        assertTrue(fragment.contains("binding.configOpenGame.setOnClickListener { viewModel.openGame() }"))
+        assertTrue(fragment.contains("binding.configOpenGame.isEnabled = !busy"))
+        val vm = source("java/com/topjohnwu/magisk/ui/module/ModuleConfigViewModel.kt").substringAfter("fun openGame()")
+        assertTrue(vm.contains("busy.value == true"))
+        assertTrue(vm.contains("LDMaskGameLauncher.exec()"))
+        assertFalse(vm.contains("ModuleUiRepository.save"))
+        val task = source("java/com/topjohnwu/magisk/core/tasks/LDMaskGameLauncher.kt")
+        assertTrue(task.contains("Dispatchers.IO"))
+        assertTrue(task.contains("Info.env.isActive"))
+        assertTrue(task.contains("Shell.cmd(command)"))
+        assertTrue(task.contains("timeout -s TERM -k 2 15"))
+        assertTrue(task.contains("\"LDLOGIN_LAUNCH_SENT\" !in result.out"))
+        val script = source("res/raw/ldmask_open_game.sh")
+        assertTrue(script.contains("[ \"\$(id -u)\" = 0 ]"))
+        assertTrue(script.contains("PKG=com.vng.playtogether"))
+        assertEquals(1, Regex("OUTPUT=\\$\\(am start").findAll(script).count())
+        assertFalse(script.contains("am force-stop"))
+        assertFalse(script.contains("monkey -"))
+        assertFalse(script.contains("sleep "))
     }
 
     @Test fun unlistedCleanupIsFlagOnlyAndUsesTwoPassGuards() {

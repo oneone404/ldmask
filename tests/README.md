@@ -51,6 +51,15 @@ changes real modules or bot settings. JVM tests verify cleanup is called only af
 all selected installs succeed and preserves published but unselected modules.
 These tests do not prove LDMenu's opaque library works after a real ID migration.
 
+## Root game launch (v1.0.10)
+
+`powershell -File tests/test-game-launch.ps1 -Serial <ADB-serial>` runs the actual
+launch script with all UID/package/activity commands mocked. Nine cases cover
+first/open-existing launch, root refusal, missing/foreign/malformed component,
+command failure, error output with zero exit and exceptions. It never launches,
+stops or modifies the real game. UI contracts check button position, busy guard,
+IO/root/timeout backend and no implicit settings save or repeated launch requests.
+
 ## Post-root preset (v1.0.5)
 
 Only after successful direct-system root installation, preset Zygisk=1,
