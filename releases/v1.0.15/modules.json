@@ -1,0 +1,20 @@
+{
+  "schema": 2,
+  "release": "v1.0.15",
+  "modules": [
+    {
+      "id": "ldlogin",
+      "asset": "LDLogin.zip",
+      "versionCode": 25,
+      "size": 158645,
+      "sha256": "8c72c673bc1820488db014ad500ac1ed791dc74d0c92cbb1807c4a571377b70c"
+    },
+    {
+      "id": "ldmenu",
+      "asset": "LDMenu.zip",
+      "versionCode": 3,
+      "size": 3103489,
+      "sha256": "aa660113a218ee206e16346c78cd9853222efcb63dbde6f13e4e6f9257311cdf"
+    }
+  ]
+}

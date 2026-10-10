@@ -184,9 +184,15 @@ class MainActivity : SplashActivity<ActivityMainMd2Binding>() {
                 ?.filterNot { File("$it/magisk").exists() }
                 ?.any { File("$it/su").exists() } == true) {
             MagiskDialog(this).apply {
-                setTitle(R.string.unsupport_general_title)
-                setMessage(R.string.unsupport_other_su_msg)
+                setTitle(R.string.ldmask_other_su_title)
+                setMessage(R.string.ldmask_other_su_message)
                 setButton(MagiskDialog.ButtonType.POSITIVE) { text = android.R.string.ok }
+                setButton(MagiskDialog.ButtonType.NEGATIVE) {
+                    text = R.string.ldmask_delete_action
+                    onClick {
+                        MainDirections.actionFlashFragment(Const.Value.REMOVE_SYSTEM_SU, null).navigate()
+                    }
+                }
                 setCancelable(false)
             }.show()
         }

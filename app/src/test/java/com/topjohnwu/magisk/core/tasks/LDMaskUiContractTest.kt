@@ -62,6 +62,35 @@ class LDMaskUiContractTest {
         assertFalse(task.contains("reboot("))
     }
 
+    @Test fun foreignSuStatusHasOkAndDeleteUsingExistingCleanup() {
+        val activity = source("java/com/topjohnwu/magisk/ui/MainActivity.kt")
+        val warning = activity.substringAfter("if (!Info.isEmulator && Info.env.isActive")
+            .substringBefore("if (applicationInfo.flags")
+        assertTrue(warning.contains("File(\"\$it/su\").exists()"))
+        assertTrue(warning.contains("setTitle(R.string.ldmask_other_su_title)"))
+        assertTrue(warning.contains("setMessage(R.string.ldmask_other_su_message)"))
+        assertTrue(warning.contains("ButtonType.POSITIVE) { text = android.R.string.ok }"))
+        assertTrue(warning.contains("ButtonType.NEGATIVE"))
+        assertTrue(warning.contains("text = R.string.ldmask_delete_action"))
+        assertEquals(2, Regex("setButton\\(").findAll(warning).count())
+        assertTrue(warning.contains("MainDirections.actionFlashFragment(Const.Value.REMOVE_SYSTEM_SU, null).navigate()"))
+        assertFalse(warning.contains("FLASH_MAGISK"))
+        assertFalse(warning.contains("FixEnv"))
+        assertFalse(warning.contains("rm -"))
+    }
+
+    @Test fun foreignSuStatusUsesExactVietnameseTextWithoutChangingOtherWarnings() {
+        val vi = source("res/values-vi/ldmask.xml")
+        assertTrue(vi.contains(">Thông Báo Trạng Thái<"))
+        assertTrue(vi.contains(">Lệnh SU Không Thuộc Về Magisk Đã Được Tìm Thấy<"))
+        assertTrue(source("res/values/ldmask.xml").contains(">DELETE<"))
+        val activity = source("java/com/topjohnwu/magisk/ui/MainActivity.kt")
+        val otherWarnings = activity.substringAfter("if (applicationInfo.flags")
+        assertTrue(otherWarnings.contains("R.string.unsupport_general_title"))
+        assertTrue(otherWarnings.contains("R.string.unsupport_system_app_msg"))
+        assertTrue(otherWarnings.contains("R.string.unsupport_external_storage_msg"))
+    }
+
     @Test fun suRemovalSuccessRequiresVerifiedAbsenceNotSuccessfulRemount() {
         val task = source("java/com/topjohnwu/magisk/core/tasks/RemoveSystemSu.kt")
         assertTrue(task.contains("boundedCommand(verifier, 10)"))

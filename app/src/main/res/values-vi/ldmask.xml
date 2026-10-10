@@ -14,6 +14,8 @@
     <string name="ldmask_pending_update">Chờ cập nhật — khởi động lại LD để áp dụng</string>
     <string name="ldmask_remove_system_su">Xoá Su Bin/Xbin</string>
     <string name="ldmask_delete">Xoá</string>
+    <string name="ldmask_other_su_title">Thông Báo Trạng Thái</string>
+    <string name="ldmask_other_su_message">Lệnh SU Không Thuộc Về Magisk Đã Được Tìm Thấy</string>
     <string name="ldmask_remove_system_su_confirm">Xoá vĩnh viễn đúng hai file:\n/system/bin/su\n/system/xbin/su\n\nKhông xoá thư mục. Giữ đường dẫn root Magisk riêng. Phân vùng hệ thống có thể tạm chuyển sang ghi rồi khôi phục lại. Không sao lưu, không tự reboot.</string>
     <string name="ldmask_quick_install">Cài Nhanh Module</string>
 </resources>
