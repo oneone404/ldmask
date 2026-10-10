@@ -3,6 +3,7 @@
     <string name="ldmask_reload">Reload</string>
     <string name="ldmask_open_game">Open Game</string>
     <string name="ldmask_choose_modules">Choose Modules</string>
+    <string name="ldmask_install_action">Install</string>
     <string name="ldmask_configuration">Configuration</string>
     <string name="ldmask_login_configuration">LDLogin Configuration</string>
     <string name="ldmask_remove_magisk">Remove Magisk</string>

@@ -11,6 +11,21 @@ class LDMaskUiContractTest {
         return requireNotNull(files.firstOrNull { it.isFile }).readText()
     }
 
+    @Test fun installPopupsUseInstallWithoutRenamingConfigurationScreens() {
+        val chooser = source("java/com/topjohnwu/magisk/dialog/ChooseModulesDialog.kt")
+        val manager = source("java/com/topjohnwu/magisk/dialog/ManagerInstallDialog.kt")
+        assertTrue(chooser.contains("text = R.string.ldmask_install_action"))
+        assertTrue(manager.contains("text = R.string.ldmask_install_action"))
+        assertFalse(chooser.contains("text = R.string.install;"))
+        assertFalse(manager.contains("text = R.string.install\n"))
+        assertTrue(chooser.contains("vm.confirmQuickInstall(selected.toSet())"))
+        assertTrue(manager.contains("DownloadService.start(activity, Subject.App())"))
+        val vi = source("res/values-vi/ldmask.xml")
+        assertTrue(vi.contains("name=\"ldmask_install_action\">Cài đặt<"))
+        assertTrue(vi.contains("name=\"ldmask_configuration\">Cấu Hình<"))
+        assertTrue(source("res/values-vi/strings.xml").contains("name=\"loading\">Loading<"))
+    }
+
     @Test fun noHomeWarningViewOrHideButton() {
         val xml = source("res/layout/fragment_home_md2.xml")
         assertFalse(xml.contains("home_notice"))

@@ -13,7 +13,7 @@
     <!--Home-->
     <string name="no_connection">Không có kết nối</string>
     <string name="app_changelog">Changelog</string>
-    <string name="loading">Đang tải…</string>
+    <string name="loading">Loading</string>
     <string name="update">Cập nhật</string>
     <string name="not_available">Không có sẵn</string>
     <string name="hide">Ẩn</string>

@@ -22,7 +22,7 @@ class ChooseModulesDialog(private val vm: ModuleViewModel, private val modules: 
         }
         dialog.setView(layout)
         dialog.setButton(MagiskDialog.ButtonType.POSITIVE) {
-            text = R.string.install; doNotDismiss = true
+            text = R.string.ldmask_install_action; doNotDismiss = true
             onClick { if (selected.isNotEmpty()) { vm.confirmQuickInstall(selected.toSet()); it.dismiss() } }
         }
         dialog.setButton(MagiskDialog.ButtonType.NEGATIVE) { text = android.R.string.cancel }

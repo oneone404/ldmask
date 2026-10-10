@@ -3,6 +3,7 @@
     <string name="ldmask_reload">Tải Lại</string>
     <string name="ldmask_open_game">Mở Game</string>
     <string name="ldmask_choose_modules">Chọn Module</string>
+    <string name="ldmask_install_action">Cài đặt</string>
     <string name="ldmask_configuration">Cấu Hình</string>
     <string name="ldmask_login_configuration">Cấu Hình LDLogin</string>
     <string name="ldmask_remove_magisk">Gỡ Magisk</string>

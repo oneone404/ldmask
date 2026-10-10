@@ -28,7 +28,7 @@ class ManagerInstallDialog : MarkDownDialog() {
         dialog.apply {
             setCancelable(true)
             setButton(MagiskDialog.ButtonType.POSITIVE) {
-                text = R.string.install
+                text = R.string.ldmask_install_action
                 onClick { DownloadService.start(activity, Subject.App()) }
             }
             setButton(MagiskDialog.ButtonType.NEGATIVE) {
