@@ -38,6 +38,23 @@ class LDMaskUiContractTest {
         assertTrue(xml.contains("include_home_manager"))
     }
 
+    @Test fun pickerAndFlashShareCatalogSelectionValidation() {
+        val picker = source("java/com/topjohnwu/magisk/ui/module/ModuleViewModel.kt")
+            .substringAfter("fun confirmQuickInstall").substringBefore("fun removeSystemSuPressed")
+        assertTrue(picker.contains("QuickModuleCatalog.encodeSelection(ids) ?: return false"))
+        assertFalse(picker.contains("require("))
+        assertFalse(picker.contains("setOf("))
+        val flash = source("java/com/topjohnwu/magisk/ui/flash/FlashViewModel.kt")
+            .substringAfter("Const.Value.FLASH_LDMASK_MODULES ->").substringBefore("Const.Value.FLASH_ZIP ->")
+        assertTrue(flash.contains("QuickModuleCatalog.decodeSelection(it)"))
+        assertTrue(flash.contains("runCatching"))
+        assertTrue(flash.contains("if (ids == null)"))
+        assertTrue(flash.contains("LDMaskModuleInstaller.exec"))
+        assertFalse(flash.contains("setOf("))
+        val dialog = source("java/com/topjohnwu/magisk/dialog/ChooseModulesDialog.kt")
+        assertTrue(dialog.contains("if (vm.confirmQuickInstall(selected.toSet())) it.dismiss()"))
+    }
+
     @Test fun backpackModeIsEventDrivenAndSkipsBothMatcherActions() {
         val script = File("../module-src/ldlogin/module/system/bin/app.sh").takeIf { it.isFile }
             ?: File("module-src/ldlogin/module/system/bin/app.sh")

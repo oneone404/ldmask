@@ -16,6 +16,21 @@ object QuickModuleCatalog {
     private val moduleIds = linkedMapOf("LDLogin.zip" to "ldlogin", "LDMenu.zip" to "ldmenu",
         "LDNPH.zip" to "zygisk_il2cppdumper")
 
+    // One allowlist for the picker, navigation payload, flash screen and installer.
+    fun isValidSelection(ids: Set<String>?): Boolean =
+        !ids.isNullOrEmpty() && ids.size <= moduleIds.size && ids.all { it in moduleIds.values }
+
+    fun encodeSelection(ids: Set<String>): String? =
+        if (isValidSelection(ids)) moduleIds.values.filter { it in ids }.joinToString(",") else null
+
+    fun decodeSelection(value: String?): Set<String>? {
+        if (value.isNullOrEmpty() || value.length > 128) return null
+        val parts = value.split(',')
+        val ids = parts.toSet()
+        if (parts.size != ids.size) return null
+        return ids.takeIf { isValidSelection(it) }
+    }
+
     // Optional rows extend the catalog without making older two-module clients reject it.
     private fun moduleRows(json: JSONObject): List<JSONObject> {
         val groups = listOfNotNull(json.getJSONArray("modules"),
@@ -90,7 +105,7 @@ object QuickModuleCatalog {
     fun select(available: List<QuickModule>, requested: Set<String>?): List<QuickModule> {
         // Diagnostic/dumper module is always opt-in, including legacy null-selection callers.
         val ids = requested ?: available.filter { it.id != "zygisk_il2cppdumper" }.map { it.id }.toSet()
-        require(ids.isNotEmpty() && ids.size <= moduleIds.size && available.map { it.id }.toSet().containsAll(ids)) { "Selected module is no longer published/available" }
+        require(isValidSelection(ids) && available.map { it.id }.toSet().containsAll(ids)) { "Selected module is no longer published/available" }
         return available.filter { it.id in ids }
     }
 

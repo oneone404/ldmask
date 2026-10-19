@@ -29,14 +29,16 @@ class QuickModuleInstallTest {
     }
 
     private class Source(private val blobs: List<ByteArray>, private val badHash: Boolean = false) : QuickReleaseSource {
-        val modules = listOf("ldlogin", "ldmenu").mapIndexed { i, id ->
+        val modules = listOf("ldlogin", "ldmenu", "zygisk_il2cppdumper").take(blobs.size).mapIndexed { i, id ->
             val hash = MessageDigest.getInstance("SHA-256").digest(blobs[i]).joinToString("") { "%02x".format(it.toInt() and 255) }
-            QuickModule(id, ReleaseAsset(if (i == 0) "LDLogin.zip" else "LDMenu.zip", blobs[i].size.toLong(), ""), 1,
+            QuickModule(id, ReleaseAsset(listOf("LDLogin.zip", "LDMenu.zip", "LDNPH.zip")[i], blobs[i].size.toLong(), ""), 1,
                 if (badHash && i == 1) "0".repeat(64) else hash)
         }
         override fun latest() = ModuleRelease("v1.0.0", emptyMap())
         override fun manifest(release: ModuleRelease) = modules
-        override fun download(asset: ReleaseAsset, target: File) { target.writeBytes(blobs[if (asset.name == "LDLogin.zip") 0 else 1]) }
+        override fun download(asset: ReleaseAsset, target: File) {
+            target.writeBytes(blobs[modules.indexOfFirst { it.asset.name == asset.name }])
+        }
     }
 
     private fun scenario(source: QuickReleaseSource, failAt: Int = -1, selected: Set<String>? = null): Pair<QuickInstallResult, Int> = runBlocking {
@@ -51,6 +53,39 @@ class QuickModuleInstallTest {
 
     @Test fun installsBothAndCleansCache() {
         assertEquals(QuickInstallResult(true, 2) to 2, scenario(Source(listOf(zip("ldlogin"), zip("ldmenu")))))
+    }
+
+    @Test fun everyPickerCombinationPassesNavigationAndInstallsOnlyRequestedModules() = runBlocking {
+        val all = listOf("ldlogin", "ldmenu", "zygisk_il2cppdumper")
+        for (mask in 1..7) {
+            val selected = all.filterIndexed { index, _ -> mask and (1 shl index) != 0 }.toSet()
+            val payload = requireNotNull(QuickModuleCatalog.encodeSelection(selected))
+            val decoded = requireNotNull(QuickModuleCatalog.decodeSelection(payload))
+            assertEquals(selected, decoded)
+            val source = Source(all.map { zip(it) })
+            val dir = Files.createTempDirectory("ldmask-selection-path").toFile()
+            val installed = mutableListOf<String>()
+            var kept = emptySet<String>()
+            try {
+                val result = QuickModuleInstall(dir, source, { _, module -> installed += module.id; true }, {},
+                    decoded, { allowed -> kept = allowed; true }).exec()
+                assertEquals(QuickInstallResult(true, selected.size), result)
+                assertEquals(selected, installed.toSet())
+                assertEquals(all.toSet(), kept)
+                assertEquals(0, File(dir, "ldmask-downloads").listFiles()?.size ?: 0)
+            } finally { dir.deleteRecursively() }
+        }
+    }
+
+    @Test fun selectionRejectsInvalidPayloadsWithoutThrowing() {
+        assertNull(QuickModuleCatalog.encodeSelection(emptySet()))
+        assertNull(QuickModuleCatalog.encodeSelection(setOf("foreign")))
+        for (value in listOf(null, "", "foreign", "ldnph", "ldlogin,", ",ldmenu", "ldmenu,ldmenu",
+            "ldlogin,foreign", "../zygisk_il2cppdumper", "zygisk_il2cppdumper ", "x".repeat(129))) {
+            assertNull("Rejected: $value", QuickModuleCatalog.decodeSelection(value))
+        }
+        assertEquals(setOf("zygisk_il2cppdumper"), QuickModuleCatalog.decodeSelection("zygisk_il2cppdumper"))
+        assertFalse(QuickModuleCatalog.isValidSelection(null))
     }
 
     @Test fun cleanupKeepsAllPublishedModulesNotOnlySelected() = runBlocking {

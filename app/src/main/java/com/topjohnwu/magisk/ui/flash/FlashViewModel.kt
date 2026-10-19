@@ -19,6 +19,7 @@ import com.topjohnwu.magisk.core.ktx.timeFormatStandard
 import com.topjohnwu.magisk.core.ktx.toTime
 import com.topjohnwu.magisk.core.tasks.FlashZip
 import com.topjohnwu.magisk.core.tasks.LDMaskModuleInstaller
+import com.topjohnwu.magisk.core.tasks.QuickModuleCatalog
 import com.topjohnwu.magisk.core.tasks.RemoveSystemSu
 import com.topjohnwu.magisk.core.tasks.RemoveAllModules
 import com.topjohnwu.magisk.core.tasks.MagiskInstaller
@@ -78,9 +79,11 @@ class FlashViewModel : BaseViewModel() {
                 }
                 Const.Value.FLASH_LDMASK_MODULES -> {
                     showReboot = false
-                    val ids = uri?.takeIf { it.scheme == "ldmask" && it.host == "modules" }
-                        ?.getQueryParameter("ids")?.split(',')?.toSet()
-                    if (ids.isNullOrEmpty() || ids.any { it !in setOf("ldlogin", "ldmenu") }) {
+                    val ids = runCatching {
+                        uri?.takeIf { it.scheme == "ldmask" && it.host == "modules" }
+                            ?.getQueryParameter("ids")?.let { QuickModuleCatalog.decodeSelection(it) }
+                    }.getOrNull()
+                    if (ids == null) {
                         outItems.add("! No valid module selection"); onResult(false); return@launch
                     }
                     val handler = Handler(Looper.getMainLooper())

@@ -142,7 +142,7 @@ object LDMaskModuleInstaller {
                     "grep -qxF ${quote("versionCode=${module.versionCode}")} $prop"
             ).exec().isSuccess
         }, boundedLog, selectedIds, { allowed ->
-            require(allowed.isNotEmpty() && allowed.all { it in setOf("ldlogin", "ldmenu", "zygisk_il2cppdumper") })
+            require(QuickModuleCatalog.isValidSelection(allowed))
             val script = AppContext.resources.openRawResource(R.raw.ldmask_cleanup_unlisted_modules)
                 .bufferedReader().use { it.readText() }
             val keep = "KEEP_LDLOGIN=${if ("ldlogin" in allowed) 1 else 0}\n" +

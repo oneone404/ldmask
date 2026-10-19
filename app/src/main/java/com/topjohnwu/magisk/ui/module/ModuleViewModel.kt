@@ -5,6 +5,7 @@ import androidx.databinding.Bindable
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.topjohnwu.magisk.core.tasks.LDMaskModuleInstaller
+import com.topjohnwu.magisk.core.tasks.QuickModuleCatalog
 import com.topjohnwu.magisk.dialog.ChooseModulesDialog
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
@@ -106,10 +107,11 @@ class ModuleViewModel : AsyncLoadViewModel() {
         }
     }
 
-    fun confirmQuickInstall(ids: Set<String>) {
-        require(ids.isNotEmpty() && ids.all { it in setOf("ldlogin", "ldmenu") })
+    fun confirmQuickInstall(ids: Set<String>): Boolean {
+        val selection = QuickModuleCatalog.encodeSelection(ids) ?: return false
         MainDirections.actionFlashFragment(Const.Value.FLASH_LDMASK_MODULES,
-            Uri.parse("ldmask://modules?ids=${ids.joinToString(",")}")).navigate()
+            Uri.parse("ldmask://modules?ids=$selection")).navigate()
+        return true
     }
 
     fun removeSystemSuPressed() {
