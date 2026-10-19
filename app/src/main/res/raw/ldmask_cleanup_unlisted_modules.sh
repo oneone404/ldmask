@@ -1,11 +1,16 @@
 #!/system/bin/sh
 # Called only after successful, user-confirmed quick installation.
 [ "$(id -u)" = 0 ] || exit 10
-case "$KEEP_LDLOGIN:$KEEP_LDMENU" in 1:1|1:0|0:1) ;; *) exit 11 ;; esac
+KEEP_LDNPH=${KEEP_LDNPH:-0}
+for VALUE in "$KEEP_LDLOGIN" "$KEEP_LDMENU" "$KEEP_LDNPH"; do
+    case "$VALUE" in 0|1) ;; *) exit 11 ;; esac
+done
+[ "$KEEP_LDLOGIN:$KEEP_LDMENU:$KEEP_LDNPH" != 0:0:0 ] || exit 11
 keep_module() {
     case "$1" in
         ldlogin) [ "$KEEP_LDLOGIN" = 1 ] ;;
         ldmenu) [ "$KEEP_LDMENU" = 1 ] ;;
+        zygisk_il2cppdumper) [ "$KEEP_LDNPH" = 1 ] ;;
         *) return 1 ;;
     esac
 }

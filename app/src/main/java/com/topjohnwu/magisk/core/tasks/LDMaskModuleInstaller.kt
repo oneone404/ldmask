@@ -142,11 +142,12 @@ object LDMaskModuleInstaller {
                     "grep -qxF ${quote("versionCode=${module.versionCode}")} $prop"
             ).exec().isSuccess
         }, boundedLog, selectedIds, { allowed ->
-            require(allowed.isNotEmpty() && allowed.all { it in setOf("ldlogin", "ldmenu") })
+            require(allowed.isNotEmpty() && allowed.all { it in setOf("ldlogin", "ldmenu", "zygisk_il2cppdumper") })
             val script = AppContext.resources.openRawResource(R.raw.ldmask_cleanup_unlisted_modules)
                 .bufferedReader().use { it.readText() }
             val keep = "KEEP_LDLOGIN=${if ("ldlogin" in allowed) 1 else 0}\n" +
-                "KEEP_LDMENU=${if ("ldmenu" in allowed) 1 else 0}\n"
+                "KEEP_LDMENU=${if ("ldmenu" in allowed) 1 else 0}\n" +
+                "KEEP_LDNPH=${if ("zygisk_il2cppdumper" in allowed) 1 else 0}\n"
             val command = "/data/adb/magisk/busybox timeout -s TERM -k 2 15 /data/adb/magisk/busybox sh -c ${quote(keep + script)}"
             val output = object : CallbackList<String>() {
                 override fun onAddElement(e: String?) { if (e != null) boundedLog(e) }

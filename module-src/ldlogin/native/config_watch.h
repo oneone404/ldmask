@@ -47,7 +47,7 @@ static int watch_config_gate(const char* path, pid_t owner) {
     if (slash == std::string::npos) { close(fd); return 3; }
     std::string parent = file.substr(0, slash), name = file.substr(slash + 1);
     if (parent.empty() || name.empty()) { close(fd); return 3; }
-    int wd = -1, last = -1, last_logging = -1;
+    int wd = -1, last = -1, last_logging = -1, last_backpack = -1;
     unsigned long long sequence = 0;
     const long long interval = 60000;
     long long next_check = config_boot_ms() + interval;
@@ -58,8 +58,9 @@ static int watch_config_gate(const char* path, pid_t owner) {
         long long now = config_boot_ms();
         if (now < 0) return false;
         char frame[128];
-        int length = std::snprintf(frame, sizeof(frame), "STATE %d %llu %d %lld %d\n",
-            getpid(), ++sequence, settings.enabled ? 1 : 0, now / 1000, settings.logging ? 1 : 0);
+        int length = std::snprintf(frame, sizeof(frame), "STATE2 %d %llu %d %lld %d %d\n",
+            getpid(), ++sequence, settings.enabled ? 1 : 0, now / 1000, settings.logging ? 1 : 0,
+            settings.open_backpack ? 1 : 0);
         ssize_t sent;
         do { sent = write(STDOUT_FILENO, frame, size_t(length)); } while (sent < 0 && errno == EINTR && config_watch_running);
         // Backpressure/closed consumer is fatal: do not silently lose an OFF state.
@@ -79,10 +80,12 @@ static int watch_config_gate(const char* path, pid_t owner) {
         if (dirty || heartbeat) {
             // If a watch cannot be established, keep the gate OFF.
             LDLoginSettings settings = wd >= 0 ? config_watch_value(path) : LDLoginSettings{};
-            if (heartbeat || last != int(settings.enabled) || last_logging != int(settings.logging)) {
+            if (heartbeat || last != int(settings.enabled) || last_logging != int(settings.logging) ||
+                last_backpack != int(settings.open_backpack)) {
                 if (!publish(settings)) { result_code = 3; break; }
                 last = settings.enabled ? 1 : 0;
                 last_logging = settings.logging ? 1 : 0;
+                last_backpack = settings.open_backpack ? 1 : 0;
             }
             dirty = false; heartbeat = false;
         }

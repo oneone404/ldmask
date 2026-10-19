@@ -38,6 +38,23 @@ class LDMaskUiContractTest {
         assertTrue(xml.contains("include_home_manager"))
     }
 
+    @Test fun backpackModeIsEventDrivenAndSkipsBothMatcherActions() {
+        val script = File("../module-src/ldlogin/module/system/bin/app.sh").takeIf { it.isFile }
+            ?: File("module-src/ldlogin/module/system/bin/app.sh")
+        val app = script.readText()
+        assertTrue(app.contains("--login-only"))
+        assertTrue(app.contains("backpack_may_act"))
+        assertFalse(app.contains("CONFIRM|OK|MENU)"))
+        assertTrue(app.contains("CONFIRM|OK)"))
+        assertTrue(app.contains("sleep_with_gate \"\$DELAY_AFTER_BALO\" backpack"))
+        assertTrue(app.contains("GATE_BACKPACK_OFF_SEQUENCE"))
+        assertFalse(app.contains("--region 860,240,100,140 --click"))
+        val repo = source("java/com/topjohnwu/magisk/core/tasks/ModuleUiRepository.kt")
+        assertTrue(repo.contains("--settings-v2"))
+        assertTrue(repo.contains("snapshot.schema"))
+        assertTrue(repo.contains("backpackArgument"))
+    }
+
     @Test fun cleanupIsAnAlwaysVisibleToolbarAction() {
         val xml = source("res/menu/menu_module_ldmask.xml")
         assertTrue(xml.contains("action_tools_cleanup"))

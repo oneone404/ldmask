@@ -44,6 +44,7 @@ class LocalModuleRvItem(
     val displayName get() = when (item.id) {
         "ldlogin", "oneone" -> "LDLogin"
         "ldmenu", "ktools_zygisk" -> "LDMenu"
+        "zygisk_il2cppdumper" -> "LDNPH"
         else -> item.name
     }
 

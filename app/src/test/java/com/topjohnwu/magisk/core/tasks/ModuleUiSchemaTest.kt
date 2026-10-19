@@ -7,12 +7,14 @@ import java.io.File
 class ModuleUiSchemaTest {
     private fun descriptor(): String = listOf(File("../module-ui/ldlogin.json"), File("module-ui/ldlogin.json"))
         .first { it.isFile }.readText()
-    @Test fun actualDescriptorRendersThreeNativeFields() {
+    @Test fun actualDescriptorRendersFourNativeFields() {
         val ui = ModuleUiSchema.parse(descriptor(), "ldlogin")
-        assertEquals(listOf("enabled", "boot_wait_seconds", "logging"), ui.fields.map { it.key })
-        assertEquals(listOf("boolean", "integer", "boolean"), ui.fields.map { it.type })
+        assertEquals(listOf("enabled", "open_backpack", "boot_wait_seconds", "logging"), ui.fields.map { it.key })
+        assertEquals(listOf("boolean", "boolean", "integer", "boolean"), ui.fields.map { it.type })
         assertEquals("Cấu Hình LDLogin", ui.title)
         assertEquals("LDLogin", ui.fields.first().label)
+        assertEquals("Mở Balo", ui.fields[1].label)
+        assertEquals(true, ui.fields[1].default)
     }
     @Test fun rejectsCommandsPathsForeignSettingsAndDuplicateKeys() {
         val json = descriptor()
@@ -36,5 +38,17 @@ class ModuleUiSchemaTest {
         for (value in listOf(-1, 601, "30", 30.0, true)) {
             assertTrue(runCatching { LDLoginUiSettings.from(mapOf("enabled" to true, "boot_wait_seconds" to value, "logging" to false)) }.isFailure)
         }
+        assertEquals(LDLoginUiSettings(true, 30, false, false), LDLoginUiSettings.from(mapOf(
+            "enabled" to true, "boot_wait_seconds" to 30, "logging" to false, "open_backpack" to false)))
+        for (bad in listOf("false", 0, 1)) {
+            assertTrue(runCatching { LDLoginUiSettings.from(mapOf("enabled" to true,
+                "boot_wait_seconds" to 30, "logging" to false, "open_backpack" to bad)) }.isFailure)
+        }
+    }
+
+    @Test fun legacyThreeFieldDescriptorStillWorks() {
+        val old = descriptor().lineSequence().filterNot { it.contains("open_backpack") }.joinToString("\n")
+        assertEquals(3, ModuleUiSchema.parse(old, "ldlogin").fields.size)
+        assertTrue(LDLoginUiSettings().openBackpack)
     }
 }

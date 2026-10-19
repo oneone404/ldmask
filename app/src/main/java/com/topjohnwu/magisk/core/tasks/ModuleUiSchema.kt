@@ -7,7 +7,8 @@ data class ModuleUiField(val key: String, val type: String, val label: String,
     val description: String, val default: Any, val min: Int = 0, val max: Int = 0)
 data class ModuleUiSchema(val title: String, val fields: List<ModuleUiField>) {
     companion object {
-        private val keys = setOf("enabled", "boot_wait_seconds", "logging")
+        private val baseKeys = setOf("enabled", "boot_wait_seconds", "logging")
+        private val keys = baseKeys + "open_backpack"
         /** Small declarative data only: no paths, commands, script, WebView or arbitrary writer. */
         fun parse(text: String, moduleId: String): ModuleUiSchema {
             require(moduleId == "ldlogin" && text.toByteArray().size <= 16384) { "Unsupported module UI" }
@@ -21,7 +22,7 @@ data class ModuleUiSchema(val title: String, val fields: List<ModuleUiField>) {
             require(root["schema"] == 1 && root["settingsId"] == "ldlogin") { "Unsupported UI schema/settingsId" }
             val title = label(root["title"], 64)
             val rows = root["fields"] as? List<*> ?: error("Missing fields")
-            require(rows.size == 3)
+            require(rows.size in 3..4)
             val fields = rows.map { row ->
                 val map = row as? Map<*, *> ?: error("Invalid field")
                 val key = map["key"] as? String ?: error("Invalid key")
@@ -36,11 +37,13 @@ data class ModuleUiSchema(val title: String, val fields: List<ModuleUiField>) {
                     require(type == "integer" && map["default"] == 30 && map["min"] == 0 && map["max"] == 600)
                     ModuleUiField(key, type, name, description, 30, 0, 600)
                 } else {
-                    require(type == "boolean" && map["default"] == false)
-                    ModuleUiField(key, type, name, description, false)
+                    val default = key == "open_backpack"
+                    require(type == "boolean" && map["default"] == default)
+                    ModuleUiField(key, type, name, description, default)
                 }
             }
-            require(fields.map { it.key }.toSet() == keys) { "Missing/duplicate UI fields" }
+            val fieldKeys = fields.map { it.key }.toSet()
+            require(fieldKeys.size == fields.size && (fieldKeys == baseKeys || fieldKeys == keys)) { "Missing/duplicate UI fields" }
             return ModuleUiSchema(title, fields)
         }
 
@@ -78,15 +81,19 @@ data class ModuleUiSchema(val title: String, val fields: List<ModuleUiField>) {
     }
 }
 
-data class LDLoginUiSettings(val enabled: Boolean = false, val bootWait: Int = 30, val logging: Boolean = false) {
+data class LDLoginUiSettings(val enabled: Boolean = false, val bootWait: Int = 30, val logging: Boolean = false,
+    val openBackpack: Boolean = true) {
     init { require(bootWait in 0..600) }
-    fun values(): Map<String, Any> = mapOf("enabled" to enabled, "boot_wait_seconds" to bootWait, "logging" to logging)
+    fun values(): Map<String, Any> = mapOf("enabled" to enabled, "boot_wait_seconds" to bootWait, "logging" to logging,
+        "open_backpack" to openBackpack)
     companion object {
         fun from(values: Map<String, Any>): LDLoginUiSettings {
-            require(values.keys == setOf("enabled", "boot_wait_seconds", "logging"))
+            val baseKeys = setOf("enabled", "boot_wait_seconds", "logging")
+            require(values.keys == baseKeys || values.keys == baseKeys + "open_backpack")
             return LDLoginUiSettings(values["enabled"] as? Boolean ?: error("Boolean required"),
                 values["boot_wait_seconds"] as? Int ?: error("Integer required"),
-                values["logging"] as? Boolean ?: error("Boolean required"))
+                values["logging"] as? Boolean ?: error("Boolean required"),
+                if ("open_backpack" in values) values["open_backpack"] as? Boolean ?: error("Boolean required") else true)
         }
     }
 }

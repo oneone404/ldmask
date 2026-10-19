@@ -43,6 +43,25 @@ printf '{"enabled":true,"boot_wait_seconds":"oops"}' > "$FILE"
 RESULT=$("$ROOT/finder" --settings "$FILE"); STATUS=$?
 [ "$STATUS" = 3 ] && [ "$RESULT" = 'SETTINGS 0 30 0' ] || exit 7
 echo 'PASS malformed settings fail closed'
+printf '{"enabled":true,"boot_wait_seconds":45,"logging":false}' > "$FILE"
+[ "$("$ROOT/finder" --settings-v2 "$FILE")" = 'SETTINGS 1 45 0 1' ] || exit 8
+echo 'PASS legacy settings retain backpack default ON'
+"$ROOT/finder" --save-settings "$FILE" 1 45 0 0 || exit 10
+[ "$("$ROOT/finder" --settings-v2 "$FILE")" = 'SETTINGS 1 45 0 0' ] || exit 11
+echo 'PASS backpack OFF round-trip'
+"$ROOT/finder" --save-settings "$FILE" 1 60 1 || exit 12
+[ "$("$ROOT/finder" --settings-v2 "$FILE")" = 'SETTINGS 1 60 1 0' ] || exit 13
+echo 'PASS old-manager writer preserves backpack OFF'
+"$ROOT/finder" --save-settings "$FILE" 1 60 1 1 || exit 14
+[ "$("$ROOT/finder" --settings-v2 "$FILE")" = 'SETTINGS 1 60 1 1' ] || exit 15
+echo 'PASS backpack ON round-trip'
+"$ROOT/finder" --save-settings "$FILE" 1 60 1 2; STATUS=$?
+[ "$STATUS" != 0 ] && [ "$("$ROOT/finder" --settings-v2 "$FILE")" = 'SETTINGS 1 60 1 1' ] || exit 16
+echo 'PASS invalid switch preserves saved settings'
+printf '{"enabled":true,"open_backpack":"false"}' > "$FILE"
+RESULT=$("$ROOT/finder" --settings-v2 "$FILE"); STATUS=$?
+[ "$STATUS" = 3 ] && [ "$RESULT" = 'SETTINGS 0 30 0 1' ] || exit 17
+echo 'PASS wrong-type backpack fails closed'
 '@
     $program.Replace('__ROOT__',$root) | & $Adb -s $Serial shell sh
     if ($LASTEXITCODE) { throw 'Native settings fixture failed' }

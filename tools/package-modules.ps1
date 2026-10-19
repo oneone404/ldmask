@@ -1,6 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$OutputDirectory,
  [string]$LDMenuBase='D:\App\artifacts\ldmask-v1.0.7\Module.zip',
- [string]$LDMenuArmShim='')
+ [string]$LDMenuArmShim='',
+ [string]$LDNphZip='')
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -13,9 +14,11 @@ try{
  if($shimStream.Read($header,0,20) -ne 20 -or $header[0] -ne 127 -or $header[1] -ne 69 -or $header[2] -ne 76 -or $header[3] -ne 70 -or $header[4] -ne 2 -or $header[5] -ne 1 -or $header[16] -ne 3 -or $header[18] -ne 183 -or $header[19] -ne 0){throw 'Expected a little-endian ARM64 shared ELF wrapper'}
 }finally{$shimStream.Dispose()}
 if((Get-FileHash -LiteralPath $LDMenuBase).Hash -ne '5478987117093ABE95CF8D7532E6005CD88F75D3F6B913418ED9F419B73ED22C'){throw 'Unexpected LDMenu binary base'}
+if($LDNphZip -and (Get-FileHash -LiteralPath $LDNphZip -Algorithm SHA256).Hash -ne '7958565E9D3FC17B0FCF39F9899A4E6B298B51ED3C1C63858CBBBE0C09D376A1'){throw 'Unexpected LDNPH input archive'}
 $login=Join-Path $OutputDirectory 'LDLogin.zip'
 $menu=Join-Path $OutputDirectory 'LDMenu.zip'
 if((Test-Path -LiteralPath $login) -or (Test-Path -LiteralPath $menu)){throw 'Refusing to overwrite output ZIP'}
+if($LDNphZip -and (Test-Path -LiteralPath (Join-Path $OutputDirectory 'LDNPH.zip'))){throw 'Refusing to overwrite LDNPH ZIP'}
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 $source=Join-Path $repo 'module-src/ldlogin/module'
 if(!(Test-Path -LiteralPath (Join-Path $source 'system/bin/ldlogin_finder'))){throw 'Build LDLogin finder first'}
@@ -41,6 +44,12 @@ try{
  }
  [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($after,$LDMenuArmShim,'zygisk/arm64-v8a.so') | Out-Null
 }finally{$before.Dispose();$after.Dispose()}
-foreach($path in @($login,$menu)){
+$packageFiles=@($login,$menu)
+if($LDNphZip){
+ $nph=Join-Path $OutputDirectory 'LDNPH.zip'
+ Copy-Item -LiteralPath $LDNphZip -Destination $nph
+ $packageFiles+=$nph
+}
+foreach($path in $packageFiles){
  [pscustomobject]@{asset=(Split-Path -Leaf $path);size=(Get-Item -LiteralPath $path).Length;sha256=(Get-FileHash -LiteralPath $path).Hash.ToLowerInvariant()} | ConvertTo-Json -Compress
 }

@@ -100,6 +100,18 @@ assert_case cleanup_unpublished_menu 0 "$STATUS"
 [ -f "$ROOT/data/adb/modules/ldmenu/remove" ] && [ -f "$ROOT/data/adb/modules_update/ldmenu/remove" ] && [ ! -e "$ROOT/data/adb/modules/ldlogin/remove" ]
 assert_case unpublished_retired 0 "$?"
 reset_fixture
+mkdir -p "$ROOT/data/adb/modules/zygisk_il2cppdumper" "$ROOT/data/adb/modules_update/zygisk_il2cppdumper" "$ROOT/data/adb/modules/extra"
+KEEP_LDLOGIN=0; KEEP_LDMENU=0; KEEP_LDNPH=1
+'@+"`n$runCleanup"+@'
+assert_case cleanup_third_module_only 0 "$STATUS"
+[ ! -e "$ROOT/data/adb/modules/zygisk_il2cppdumper/remove" ] && [ ! -e "$ROOT/data/adb/modules_update/zygisk_il2cppdumper/remove" ] && [ -f "$ROOT/data/adb/modules/extra/remove" ]
+assert_case third_module_preserved 0 "$?"
+KEEP_LDNPH=0; KEEP_LDLOGIN=1
+'@+"`n$runCleanup"+@'
+assert_case cleanup_third_unpublished 0 "$STATUS"
+[ -f "$ROOT/data/adb/modules/zygisk_il2cppdumper/remove" ] && [ -f "$ROOT/data/adb/modules_update/zygisk_il2cppdumper/remove" ]
+assert_case third_unpublished_retired 0 "$?"
+reset_fixture
 mkdir -p "$ROOT/data/adb/modules/aaa" "$ROOT/outside"
 ln -s "$ROOT/outside" "$ROOT/data/adb/modules/zzz"
 KEEP_LDLOGIN=1; KEEP_LDMENU=1

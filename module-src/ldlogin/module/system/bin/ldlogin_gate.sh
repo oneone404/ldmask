@@ -1,6 +1,8 @@
 #!/system/bin/sh
 # Event-driven gate. Sourced by app.sh; this file never launches/taps the game.
 BOT_RUN_ALLOWED=0
+OPEN_BACKPACK=0
+GATE_BACKPACK_OFF_SEQUENCE=0
 GATE_OFF_SEQUENCE=0
 GATE_WATCH_PID=""
 GATE_WATCH_PATH=""
@@ -21,6 +23,8 @@ gate_clock() {
 }
 
 gate_off() {
+    [ "$OPEN_BACKPACK" = 1 ] && GATE_BACKPACK_OFF_SEQUENCE=$((GATE_BACKPACK_OFF_SEQUENCE + 1))
+    OPEN_BACKPACK=0
     [ "$BOT_RUN_ALLOWED" = 1 ] && GATE_OFF_SEQUENCE=$((GATE_OFF_SEQUENCE + 1))
     BOT_RUN_ALLOWED=0
     BOT_ACTIVE=0
@@ -68,7 +72,7 @@ gate_accept_frame() {
         case "$token" in ''|*[!0-9]*) gate_off; return 1 ;; esac
     done
     gate_clock
-    if [ "$GATE_MSG_TAG" != STATE ] || [ "$GATE_MSG_PID" != "$GATE_WATCH_PID" ] ||
+    if [ "$GATE_MSG_TAG" != STATE2 ] || [ "$GATE_MSG_PID" != "$GATE_WATCH_PID" ] ||
        [ -n "$GATE_MSG_EXTRA" ] || [ "$GATE_MSG_SEQ" -le "$GATE_SEQUENCE" ] ||
        [ "$GATE_MSG_TIME" -gt "$GATE_NOW" ] || [ $((GATE_NOW - GATE_MSG_TIME)) -gt 90 ]; then
         gate_off
@@ -76,10 +80,15 @@ gate_accept_frame() {
     fi
     case "$GATE_MSG_VALUE" in 0|1) ;; *) gate_off; return 1 ;; esac
     case "$GATE_MSG_LOG" in 0|1) ;; *) gate_off; return 1 ;; esac
+    case "$GATE_MSG_BACKPACK" in 0|1) ;; *) gate_off; return 1 ;; esac
     GATE_SEQUENCE="$GATE_MSG_SEQ"
     GATE_LAST_SEEN="$GATE_MSG_TIME"
     local previous="$BOT_RUN_ALLOWED"
     if [ "$GATE_MSG_VALUE" = 0 ]; then gate_off; else BOT_RUN_ALLOWED=1; fi
+    if [ "$OPEN_BACKPACK" = 1 ] && [ "$GATE_MSG_BACKPACK" = 0 ]; then
+        GATE_BACKPACK_OFF_SEQUENCE=$((GATE_BACKPACK_OFF_SEQUENCE + 1))
+    fi
+    OPEN_BACKPACK="$GATE_MSG_BACKPACK"
     ENABLE_LOG="$GATE_MSG_LOG"
     [ "$previous" = "$BOT_RUN_ALLOWED" ] || log_msg "[CONFIG] LDLogin enabled -> bot: $BOT_RUN_ALLOWED"
     return 0
@@ -87,13 +96,13 @@ gate_accept_frame() {
 
 gate_read_frame() {
     local timeout="$1" fd="$2"
-    GATE_MSG_TAG="" GATE_MSG_PID="" GATE_MSG_SEQ="" GATE_MSG_VALUE="" GATE_MSG_TIME="" GATE_MSG_LOG="" GATE_MSG_EXTRA=""
-    if IFS=' ' read -r -t "$timeout" GATE_MSG_TAG GATE_MSG_PID GATE_MSG_SEQ GATE_MSG_VALUE GATE_MSG_TIME GATE_MSG_LOG GATE_MSG_EXTRA <&"$fd"; then
+    GATE_MSG_TAG="" GATE_MSG_PID="" GATE_MSG_SEQ="" GATE_MSG_VALUE="" GATE_MSG_TIME="" GATE_MSG_LOG="" GATE_MSG_BACKPACK="" GATE_MSG_EXTRA=""
+    if IFS=' ' read -r -t "$timeout" GATE_MSG_TAG GATE_MSG_PID GATE_MSG_SEQ GATE_MSG_VALUE GATE_MSG_TIME GATE_MSG_LOG GATE_MSG_BACKPACK GATE_MSG_EXTRA <&"$fd"; then
         gate_accept_frame && return 0
         GATE_PROTOCOL_BAD=1
         return 1
     fi
-    if [ -n "$GATE_MSG_TAG$GATE_MSG_PID$GATE_MSG_SEQ$GATE_MSG_VALUE$GATE_MSG_TIME$GATE_MSG_LOG$GATE_MSG_EXTRA" ]; then
+    if [ -n "$GATE_MSG_TAG$GATE_MSG_PID$GATE_MSG_SEQ$GATE_MSG_VALUE$GATE_MSG_TIME$GATE_MSG_LOG$GATE_MSG_BACKPACK$GATE_MSG_EXTRA" ]; then
         gate_off
         GATE_PROTOCOL_BAD=1
     fi

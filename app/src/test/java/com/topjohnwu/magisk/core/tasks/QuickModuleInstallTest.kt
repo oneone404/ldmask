@@ -104,6 +104,25 @@ class QuickModuleInstallTest {
         assertTrue(runCatching { QuickModuleCatalog.publication(json.replace("true", "\"true\"")) }.isFailure)
         assertTrue(runCatching { QuickModuleCatalog.publication(json.replace("ldmenu", "ldlogin")) }.isFailure)
     }
+
+    @Test fun thirdModuleUsesOriginalIdentityAndCanBeHidden() {
+        val json = """{"schema":1,"modules":[{"id":"ldlogin","name":"LDLogin","published":true},{"id":"ldmenu","name":"LDMenu","published":true},{"id":"zygisk_il2cppdumper","name":"LDNPH","published":true}]}"""
+        assertEquals(mapOf("ldlogin" to "LDLogin", "ldmenu" to "LDMenu", "zygisk_il2cppdumper" to "LDNPH"),
+            QuickModuleCatalog.publication(json))
+        assertFalse(QuickModuleCatalog.publication(json.replace("\"name\":\"LDNPH\",\"published\":true",
+            "\"name\":\"LDNPH\",\"published\":false")).containsKey("zygisk_il2cppdumper"))
+        assertTrue(runCatching { QuickModuleCatalog.publication(json.replace("zygisk_il2cppdumper", "ldnph")) }.isFailure)
+    }
+
+    @Test fun optionalCatalogRowsAreBackwardCompatibleAndRejectDuplicates() {
+        val main = """{"id":"ldlogin","name":"LDLogin","published":true}"""
+        val optional = """{"id":"zygisk_il2cppdumper","name":"LDNPH","published":true}"""
+        val json = """{"schema":1,"modules":[$main],"optionalModules":[$optional]}"""
+        assertEquals(1, JSONObject(json).getJSONArray("modules").length()) // Older app sees only the base rows.
+        assertEquals(setOf("ldlogin", "zygisk_il2cppdumper"), QuickModuleCatalog.publication(json).keys)
+        assertTrue(runCatching { QuickModuleCatalog.publication(json.replace(optional, main)) }.isFailure)
+        assertTrue(runCatching { QuickModuleCatalog.publication(json.replace("[$optional]", "true")) }.isFailure)
+    }
     @Test fun wrongSecondIdInstallsNothing() {
         assertEquals(QuickInstallResult(false, 0) to 0, scenario(Source(listOf(zip("ldlogin"), zip("wrong")))))
     }
@@ -159,20 +178,29 @@ class QuickModuleInstallTest {
         QuickModuleCatalog.manifest("{\"schema\":1,\"release\":\"other\",\"modules\":[]}", QuickModuleCatalog.release(releaseJson().toString()))
     }
 
-    @Test fun validatesActualReleaseZipPair() {
+    @Test fun validatesActualReleaseZips() {
         val path = System.getenv("LDMASK_RELEASE_FILES")
         assumeTrue("Set LDMASK_RELEASE_FILES to validate real release assets", path != null)
         val dir = File(requireNotNull(path))
         val text = File(dir, "modules.json").readText()
         val json = releaseJson(JSONObject(text).getString("release"))
         val assets = json.getJSONArray("assets")
+        if (File(dir, "LDNPH.zip").isFile) {
+            val tag = JSONObject(text).getString("release")
+            assets.put(JSONObject().put("name", "LDNPH.zip").put("size", 1)
+                .put("browser_download_url", "https://github.com/oneone404/ldmask/releases/download/$tag/LDNPH.zip"))
+        }
         for (i in 0 until assets.length()) {
             val asset = assets.getJSONObject(i)
             asset.put("size", File(dir, asset.getString("name")).length())
         }
         val release = QuickModuleCatalog.release(json.toString())
         val modules = QuickModuleCatalog.manifest(text, release)
-        assertEquals(listOf("ldlogin", "ldmenu"), modules.map { it.id })
+        val expected = if (File(dir, "LDNPH.zip").isFile) listOf("ldlogin", "ldmenu", "zygisk_il2cppdumper")
+            else listOf("ldlogin", "ldmenu")
+        assertEquals(expected, modules.map { it.id })
+        assertEquals(modules, QuickModuleCatalog.select(modules, expected.toSet()))
+        assertEquals(listOf("ldlogin", "ldmenu"), QuickModuleCatalog.select(modules, null).map { it.id })
         modules.forEach { QuickModuleCatalog.validate(File(dir, it.asset.name), it) }
     }
 }

@@ -3,5 +3,8 @@
   "modules": [
     { "id": "ldlogin", "name": "LDLogin", "published": true },
     { "id": "ldmenu", "name": "LDMenu", "published": true }
+  ],
+  "optionalModules": [
+    { "id": "zygisk_il2cppdumper", "name": "LDNPH", "published": true }
   ]
 }

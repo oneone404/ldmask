@@ -129,3 +129,25 @@ restart, automatic reboot, resident service or polling.
 `powershell -File tests/test-root-preset.ps1` uses the actual compiled planner,
 SQLite in RAM and non-root Android syntax/mock control-flow tests. No real root
 operations are performed. Live root/Hide/Zygisk integration still requires testing.
+
+## LDLogin backpack switch / LDNPH catalog (v1.0.17)
+
+`open_backpack` defaults true for legacy valid settings; the master bot defaults
+OFF. Disable it to skip BALO and MENU matching plus all racket actions, while
+preserving login/CONFIRM/OK and existing health checks. Update APK before LDLogin;
+reboot once for module activation. Saved switch changes then use inotify/FIFO.
+
+`test-native-settings.ps1 -ModuleZip <LDLogin.zip> -Serial <serial>` verifies
+native settings, old writer compatibility and invalid-input handling.
+`test-login-backpack-native.ps1 -Serial <serial>` uses generated template frames
+and the real finder/watcher/shell gate in a unique Android scratch tree.
+`test-login-backpack.ps1 -Serial <serial>` runs production action functions with
+mock game/input/clock functions. `test-module-migration.ps1` additionally tests
+the third module's publication/cleanup rules. None of these tests installs real
+modules, touches the real bot config or operates the real game.
+
+LDNPH keeps the supplied `zygisk_il2cppdumper` identity. `optionalModules` rows in
+catalog/manifest preserve the two base rows for older app parsers. New app UI
+allows explicit selection; default/null selection excludes the dumper. Use
+`catalog.json` publication flags to hide it, not binary/ZIP rewrites. See
+module-src/ldnph/README.md and VERIFICATION-v1.0.17.md for scope and limits.

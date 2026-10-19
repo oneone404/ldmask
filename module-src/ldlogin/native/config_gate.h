@@ -13,11 +13,12 @@ struct LDLoginSettings {
     bool enabled = false;
     unsigned boot_wait_seconds = 30;
     bool logging = false;
+    bool open_backpack = true; // Preserve behavior for valid older settings.
 };
 
 // Validate the whole document. Only LDLogin's root-level typed fields are used.
 class ConfigGateJson {
-    enum Role { Other, Root, Enabled, BootWait, Logging };
+    enum Role { Other, Root, Enabled, BootWait, Logging, OpenBackpack };
     const std::string& text_;
     size_t pos_ = 0;
     LDLoginSettings settings_;
@@ -135,13 +136,14 @@ class ConfigGateJson {
         if (depth > 32) return false;
         space();
         if (pos_ >= text_.size()) return false;
-        if (role == Enabled || role == Logging) {
+        if (role == Enabled || role == Logging || role == OpenBackpack) {
             bool value;
             if (literal("true")) value = true;
             else if (literal("false")) value = false;
             else return false;
             if (role == Enabled) settings_.enabled = value;
-            else settings_.logging = value;
+            else if (role == Logging) settings_.logging = value;
+            else settings_.open_backpack = value;
             return true;
         }
         if (role == BootWait) {
@@ -170,6 +172,7 @@ class ConfigGateJson {
                 if (role == Root && key == "enabled") child = Enabled;
                 if (role == Root && key == "boot_wait_seconds") child = BootWait;
                 if (role == Root && key == "logging") child = Logging;
+                if (role == Root && key == "open_backpack") child = OpenBackpack;
                 if (!value(depth + 1, child)) return false;
                 space();
                 if (take('}')) return true;
@@ -259,9 +262,9 @@ inline bool save_settings_file(const char* path, const LDLoginSettings& settings
     if (fd < 0) { close(directory); return false; }
     char json[160];
     int length = std::snprintf(json, sizeof(json),
-        "{\"enabled\":%s,\"boot_wait_seconds\":%u,\"logging\":%s}\n",
+        "{\"enabled\":%s,\"boot_wait_seconds\":%u,\"logging\":%s,\"open_backpack\":%s}\n",
         settings.enabled ? "true" : "false", settings.boot_wait_seconds,
-        settings.logging ? "true" : "false");
+        settings.logging ? "true" : "false", settings.open_backpack ? "true" : "false");
     bool ok = fchmod(fd, 0600) == 0;
     int written = 0;
     while (ok && written < length) {

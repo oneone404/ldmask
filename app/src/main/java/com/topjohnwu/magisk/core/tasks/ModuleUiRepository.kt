@@ -42,9 +42,11 @@ object ModuleUiRepository {
     suspend fun load(moduleId: String): ModuleUiSnapshot = withContext(Dispatchers.IO) {
         require(moduleId == "ldlogin")
         val schema = ModuleUiSchema.parse(run("head -c 16385 \"\${BASE}/ui.json\"").joinToString("\n"), moduleId)
+        val supportsBackpack = schema.fields.any { it.key == "open_backpack" }
+        val readOption = if (supportsBackpack) "--settings-v2" else "--settings"
         val lines = run("""
             BEFORE=${'$'}(fingerprint) || exit 15
-            RESULT=${'$'}("${'$'}FINDER" --settings '$file' 2>/dev/null); VALID=${'$'}?
+            RESULT=${'$'}("${'$'}FINDER" $readOption '$file' 2>/dev/null); VALID=${'$'}?
             AFTER=${'$'}(fingerprint) || exit 15
             [ "${'$'}BEFORE" = "${'$'}AFTER" ] || exit 16
             printf '%s\nMETA %s %s %s\n' "${'$'}RESULT" "${'$'}VALID" "${'$'}PENDING" "${'$'}AFTER"
@@ -52,11 +54,13 @@ object ModuleUiRepository {
         require(lines.size == 2)
         val fields = lines[0].split(' ')
         val meta = lines[1].split(' ')
-        require(fields.size == 4 && fields[0] == "SETTINGS" && meta.size == 4 && meta[0] == "META")
+        require(fields.size == (if (supportsBackpack) 5 else 4) && fields[0] == "SETTINGS" && meta.size == 4 && meta[0] == "META")
         require(fields[1] in setOf("0", "1") && fields[3] in setOf("0", "1"))
+        require(!supportsBackpack || fields[4] in setOf("0", "1"))
         require(meta[3] == "missing" || meta[3].matches(Regex("[a-f0-9]{64}")))
         val valid = meta[1] == "0"
-        ModuleUiSnapshot(schema, if (valid) LDLoginUiSettings(fields[1] == "1", fields[2].toInt(), fields[3] == "1") else LDLoginUiSettings(),
+        ModuleUiSnapshot(schema, if (valid) LDLoginUiSettings(fields[1] == "1", fields[2].toInt(), fields[3] == "1",
+            !supportsBackpack || fields[4] == "1") else LDLoginUiSettings(),
             valid, meta[2] == "1", meta[3])
     }
 
@@ -65,11 +69,15 @@ object ModuleUiRepository {
             require(moduleId == "ldlogin")
             require(snapshot.fingerprint == "missing" || snapshot.fingerprint.matches(Regex("[a-f0-9]{64}")))
             // Revalidate the descriptor and reload if any external writer changed the file.
-            ModuleUiSchema.parse(run("head -c 16385 \"\${BASE}/ui.json\"").joinToString("\n"), moduleId)
+            val schema = ModuleUiSchema.parse(run("head -c 16385 \"\${BASE}/ui.json\"").joinToString("\n"), moduleId)
+            check(schema == snapshot.schema) { "Module đã thay đổi; tải lại cấu hình" }
+            val supportsBackpack = schema.fields.any { it.key == "open_backpack" }
+            require(supportsBackpack || settings.openBackpack)
+            val backpackArgument = if (supportsBackpack) " ${if (settings.openBackpack) 1 else 0}" else ""
             run("""
                 [ "${'$'}(fingerprint)" = '${snapshot.fingerprint}' ] || exit 20
                 mkdir -p /data/adb/ldlogin && chmod 700 /data/adb/ldlogin || exit 21
-                "${'$'}FINDER" --save-settings '$file' ${if (settings.enabled) 1 else 0} ${settings.bootWait} ${if (settings.logging) 1 else 0} || exit 22
+                "${'$'}FINDER" --save-settings '$file' ${if (settings.enabled) 1 else 0} ${settings.bootWait} ${if (settings.logging) 1 else 0}$backpackArgument || exit 22
             """.trimIndent())
             load(moduleId).also { check(it.valid && it.settings == settings) { "Đã ghi nhưng kiểm tra lại không khớp; tải lại cấu hình" } }
         }

@@ -137,7 +137,7 @@ struct BatchSpec {
     int x, y, w, h;
 };
 
-static int run_batch(const char* image_dir, bool click, const char* screen_path) {
+static int run_batch(const char* image_dir, bool click, const char* screen_path, bool open_backpack = true) {
     Image screen;
     if (!(screen_path ? load_png(screen_path, screen) : capture_screen(screen))) {
         std::fprintf(stderr, "ERROR_CAPTURE_SCREEN\n"); return 4;
@@ -153,6 +153,8 @@ static int run_batch(const char* image_dir, bool click, const char* screen_path)
     MatchResult best;
     Image winner_template;
     for (const BatchSpec& spec : specs) {
+        // Skip both matching and template decoding for disabled backpack/menu actions.
+        if (!open_backpack && (!std::strcmp(spec.tag, "BALO") || !std::strcmp(spec.tag, "MENU"))) continue;
         std::string path = std::string(image_dir) + "/" + spec.file;
         Image templ;
         if (!load_png(path.c_str(), templ)) continue;
@@ -196,8 +198,9 @@ static int run_health(const char* image_dir, const char* screen_path) {
 
 int main(int argc, char** argv) {
     if (argc >= 2 && std::strcmp(argv[1], "--save-settings") == 0) {
-        if (argc != 6 || (std::strcmp(argv[3], "0") && std::strcmp(argv[3], "1")) ||
-            (std::strcmp(argv[5], "0") && std::strcmp(argv[5], "1"))) return 3;
+        if ((argc != 6 && argc != 7) || (std::strcmp(argv[3], "0") && std::strcmp(argv[3], "1")) ||
+            (std::strcmp(argv[5], "0") && std::strcmp(argv[5], "1")) ||
+            (argc == 7 && std::strcmp(argv[6], "0") && std::strcmp(argv[6], "1"))) return 3;
         if (!argv[4][0] || std::strlen(argv[4]) > 3) return 3;
         unsigned seconds = 0;
         for (const char* p = argv[4]; *p; ++p) {
@@ -205,18 +208,23 @@ int main(int argc, char** argv) {
             seconds = seconds * 10 + unsigned(*p - '0');
         }
         LDLoginSettings settings;
+        // An older manager must not reset the new switch when saving its three fields.
+        if (argc == 6) read_settings_file(argv[2], settings);
         settings.enabled = argv[3][0] == '1';
         settings.boot_wait_seconds = seconds;
         settings.logging = argv[5][0] == '1';
+        if (argc == 7) settings.open_backpack = argv[6][0] == '1';
         if (!save_settings_file(argv[2], settings)) return 4;
         std::puts("LDLOGIN_SAVED");
         return 0;
     }
-    if (argc >= 2 && std::strcmp(argv[1], "--settings") == 0) {
+    if (argc >= 2 && (!std::strcmp(argv[1], "--settings") || !std::strcmp(argv[1], "--settings-v2"))) {
         LDLoginSettings settings;
         bool valid = argc == 3 && read_settings_file(argv[2], settings);
-        std::printf("SETTINGS %d %u %d\n", settings.enabled ? 1 : 0,
+        std::printf("SETTINGS %d %u %d", settings.enabled ? 1 : 0,
             settings.boot_wait_seconds, settings.logging ? 1 : 0);
+        if (!std::strcmp(argv[1], "--settings-v2")) std::printf(" %d", settings.open_backpack ? 1 : 0);
+        std::putchar('\n');
         return valid ? 0 : 3;
     }
     if (argc >= 2 && std::strcmp(argv[1], "--account") == 0) {
@@ -249,12 +257,14 @@ int main(int argc, char** argv) {
     if (std::strcmp(argv[1], "--batch") == 0) {
         if (argc < 3) return 2;
         bool click = false;
+        bool open_backpack = true;
         const char* screen_path = nullptr;
         for (int i = 3; i < argc; ++i) {
             if (std::strcmp(argv[i], "--click") == 0) click = true;
+            else if (std::strcmp(argv[i], "--login-only") == 0) open_backpack = false;
             else if (std::strcmp(argv[i], "--screen") == 0 && i + 1 < argc) screen_path = argv[++i];
         }
-        return run_batch(argv[2], click, screen_path);
+        return run_batch(argv[2], click, screen_path, open_backpack);
     }
 
     const char* template_path = argv[1];

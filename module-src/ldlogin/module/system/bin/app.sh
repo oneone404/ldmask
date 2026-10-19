@@ -123,6 +123,7 @@ start_target_app() {
 # Ham cho va giam sat crash (tra ve 0 neu thanh cong, 1 neu bi crash)
 wait_and_watch_crash() {
     DURATION="$1"
+    local scope="$2"
     ELAPSED=0
 
     while [ "$ELAPSED" -lt "$DURATION" ]; do
@@ -130,6 +131,7 @@ wait_and_watch_crash() {
         if [ "$BOT_RUN_ALLOWED" != "1" ] || [ "$BOT_ACTIVE" != "1" ]; then
             return 1
         fi
+        [ "$scope" != backpack ] || [ "$OPEN_BACKPACK" = 1 ] || return 1
         PID_NOW=$(pidof "$TARGET_PKG" 2>/dev/null | cut -d ' ' -f1)
         if [ -z "$PID_NOW" ]; then
             log_msg "[ALERT] Game bi crash luc dang cho o giay thu $ELAPSED/$DURATION! Dang khoi dong lai..."
@@ -139,7 +141,7 @@ wait_and_watch_crash() {
             start_target_app "$TARGET_PKG"
             return 1
         fi
-        sleep_with_gate 5 || return 1
+        sleep_with_gate 5 "$scope" || return 1
         ELAPSED=$((ELAPSED + 5))
     done
     return 0
@@ -206,7 +208,11 @@ handle_post_restart() {
 
             # Mot screencap RAM quet toan bo chuoi nut theo thu tu uu tien.
             if [ -x "$FINDER_V2" ]; then
-                RES_BATCH=$("$FINDER_V2" --batch "$IMAGES_DIR" 2>/dev/null)
+                if [ "$OPEN_BACKPACK" = 1 ]; then
+                    RES_BATCH=$("$FINDER_V2" --batch "$IMAGES_DIR" 2>/dev/null)
+                else
+                    RES_BATCH=$("$FINDER_V2" --batch "$IMAGES_DIR" --login-only 2>/dev/null)
+                fi
                 bot_may_act || return 0
                 if echo "$RES_BATCH" | grep -q '^FOUND '; then
                     B_TAG=$(echo "$RES_BATCH" | awk '{print $2}')
@@ -214,20 +220,32 @@ handle_post_restart() {
                     B_Y=$(echo "$RES_BATCH" | awk '{print $4}')
                     case "$B_TAG" in
                         BALO)
+                            # The switch may have changed while the screenshot was matched.
+                            backpack_may_act || continue
+                            BALO_SEQUENCE="$GATE_BACKPACK_OFF_SEQUENCE"
                             RAND_WAIT=$(( RANDOM % 11 + 20 ))
                             log_msg "[SUCCESS] $RES_BATCH -> Phat hien da vao dao (Giay thu ${ELAPSED}s)! Cho ${RAND_WAIT}s cho giam lag truoc khi mo Balo..."
-                            if ! wait_and_watch_crash "$RAND_WAIT"; then
+                            if ! wait_and_watch_crash "$RAND_WAIT" backpack; then
+                                bot_may_act || return 0
+                                backpack_may_act "$BALO_SEQUENCE" || continue
                                 log_msg "[ALERT] Game bi crash trong luc cho giam lag -> Bat dau lai!"
                                 continue 2
                             fi
                             log_msg "[AUTO] He thong da on dinh het lag! Tien hanh an Balo de cam vot..."
-                            bot_may_act || return 0
-                            if ! "$FINDER_V2" "$IMG_BALO" "$TH_BALO" --region 860,240,100,140 --click >/dev/null 2>&1; then
+                            backpack_may_act "$BALO_SEQUENCE" || continue
+                            RES_BALO=$("$FINDER_V2" "$IMG_BALO" "$TH_BALO" --region 860,240,100,140 2>/dev/null)
+                            if ! echo "$RES_BALO" | grep -q '^FOUND '; then
                                 log_msg "[WARN] Khong bam duoc Balo; khong tim/bam vot tren man hinh sai."
                                 sleep_with_gate "$CHECK_INT" || return 0
                                 continue
                             fi
-                            sleep_with_gate "$DELAY_AFTER_BALO" || return 0
+                            backpack_may_act "$BALO_SEQUENCE" || continue
+                            set -- $RES_BALO
+                            if ! input tap "$2" "$3"; then
+                                sleep_with_gate "$CHECK_INT" || return 0
+                                continue
+                            fi
+                            sleep_with_gate "$DELAY_AFTER_BALO" backpack || { bot_may_act || return 0; continue; }
                             VOT_CHECK=0
                             while [ "$VOT_CHECK" -lt 3 ]; do
                                 reload_runtime_state
@@ -235,12 +253,14 @@ handle_post_restart() {
                                     log_msg "[AUTO] BOT_RUN_ALLOWED dang tat -> Dung hanh dong!"
                                     return 0
                                 fi
+                                backpack_may_act "$BALO_SEQUENCE" || break
                                 gate_clock
                                 NOW="$GATE_NOW"
                                 ELAPSED=$((NOW - START_TIME))
                                 [ "$ELAPSED" -ge "$GAME_LOAD_TIME" ] && return 1
                                 RES_VOT=$("$FINDER_V2" "$IMG_VOT" "$TH_VOT" --region 50,120,160,160 2>/dev/null)
                                 bot_may_act || return 0
+                                backpack_may_act "$BALO_SEQUENCE" || break
                                 if echo "$RES_VOT" | grep -q '^FOUND'; then
                                     set -- $RES_VOT
                                     if input tap "$2" "$3"; then
@@ -250,10 +270,12 @@ handle_post_restart() {
                                 fi
                                 VOT_CHECK=$((VOT_CHECK + 1))
                                 log_msg "[WARN] Chua tim thay vot trong Balo (lan $VOT_CHECK/3)."
-                                sleep_with_gate 1 || return 0
+                                sleep_with_gate 1 backpack || break
                             done
+                            # Disabling the switch must never fall through to the fixed-coordinate tap.
+                            backpack_may_act "$BALO_SEQUENCE" || { bot_may_act || return 0; continue; }
                             log_msg "[WARN] Khong tim thay vot sau 3 lan. Fallback bam tam o vot tai (130,200)."
-                            bot_may_act || return 0
+                            backpack_may_act "$BALO_SEQUENCE" || continue
                             input tap 130 200
                             sleep_with_gate 1 || return 0
                             log_msg "[HOAN TAT] Da fallback bam o vot. Chuyen sang che do canh dong ho..."
@@ -267,7 +289,13 @@ handle_post_restart() {
                             sleep_with_gate 2 || return 0
                             continue
                             ;;
-                        CONFIRM|OK|MENU)
+                        MENU)
+                            backpack_may_act || continue
+                            input tap "$B_X" "$B_Y"
+                            sleep_with_gate 1 || return 0
+                            continue
+                            ;;
+                        CONFIRM|OK)
                             input tap "$B_X" "$B_Y"
                             log_msg "[SUCCESS] $RES_BATCH -> Da an [$B_TAG]!"
                             sleep_with_gate 1 || return 0
@@ -327,10 +355,16 @@ bot_may_act() {
     [ "$BOT_RUN_ALLOWED" = "1" ] && [ "$BOT_ACTIVE" = "1" ]
 }
 
+backpack_may_act() {
+    bot_may_act && [ "$OPEN_BACKPACK" = 1 ] &&
+        { [ "$#" = 0 ] || [ "$1" = "$GATE_BACKPACK_OFF_SEQUENCE" ]; }
+}
+
 # Cho bang FIFO, khong dung sleep de bo lo event tat bot.
 # Timeout 5s chi de kiem tra suc khoe watcher, khong polling JSON.
 sleep_with_gate() {
     local end stopped="$GATE_OFF_SEQUENCE"
+    local scope="$2" backpack_stopped="$GATE_BACKPACK_OFF_SEQUENCE"
     local step
     gate_clock
     end=$((GATE_NOW + $1))
@@ -340,6 +374,9 @@ sleep_with_gate() {
         wait_bot_gate "$step"
         [ "$stopped" = "$GATE_OFF_SEQUENCE" ] || return 1
         bot_may_act || return 1
+        if [ "$scope" = backpack ]; then
+            [ "$OPEN_BACKPACK" = 1 ] && [ "$backpack_stopped" = "$GATE_BACKPACK_OFF_SEQUENCE" ] || return 1
+        fi
         gate_clock
     done
     return 0
@@ -359,6 +396,7 @@ TIMER_STUCK_COUNT=0
 OK_STUCK_COUNT=0
 LAST_OK_PRESENT=0
 LAST_TIMER_CHECK=0
+LAST_BACKPACK_MODE=0
 
 while true; do
     # 1. Cap nhat setting LDLogin qua FIFO.
@@ -367,6 +405,7 @@ while true; do
     # Script van song de nhan thao tac bat lai; khong quet anh/click khi tat.
     if [ "$BOT_RUN_ALLOWED" != "1" ]; then
         BOT_ACTIVE=0
+        LAST_BACKPACK_MODE=0
         LAST_TIMER_CHECK=0
         TIMER_STUCK_COUNT=0
         OK_STUCK_COUNT=0
@@ -394,6 +433,7 @@ while true; do
     # Xu ly ca luc khoi dong va false -> true, ke ca khi game da chay san.
     if [ "$BOT_ACTIVE" -eq 0 ]; then
         BOT_ACTIVE=1
+        LAST_BACKPACK_MODE="$OPEN_BACKPACK"
         LAST_TIMER_CHECK=0
         TIMER_STUCK_COUNT=0
         OK_STUCK_COUNT=0
@@ -410,7 +450,18 @@ while true; do
             log_msg "[START] LDLogin enabled. Game da chay; xu ly vao dao va lay vot..."
         fi
         handle_post_restart
+        LAST_BACKPACK_MODE="$OPEN_BACKPACK"
         continue
+    fi
+
+    # Enabling backpack after login-only monitoring starts a fresh image flow, not a game restart.
+    if [ "$LAST_BACKPACK_MODE" != "$OPEN_BACKPACK" ]; then
+        LAST_BACKPACK_MODE="$OPEN_BACKPACK"
+        if [ "$OPEN_BACKPACK" = 1 ]; then
+            handle_post_restart
+            LAST_BACKPACK_MODE="$OPEN_BACKPACK"
+            continue
+        fi
     fi
 
     # 3. Neu app bi vang / tat -> Khoi dong lai va chay chuoi xu ly day du
@@ -428,6 +479,7 @@ while true; do
         LAST_TIMER_PATTERN=""
 
         handle_post_restart
+        LAST_BACKPACK_MODE="$OPEN_BACKPACK"
         continue
     fi
 
@@ -501,6 +553,7 @@ while true; do
             LAST_TIMER_PATTERN=""
 
             handle_post_restart
+            LAST_BACKPACK_MODE="$OPEN_BACKPACK"
             continue
         fi
     fi
