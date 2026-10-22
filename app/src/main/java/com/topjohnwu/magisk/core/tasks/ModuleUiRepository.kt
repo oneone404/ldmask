@@ -60,7 +60,7 @@ object ModuleUiRepository {
         require(meta[3] == "missing" || meta[3].matches(Regex("[a-f0-9]{64}")))
         val valid = meta[1] == "0"
         ModuleUiSnapshot(schema, if (valid) LDLoginUiSettings(fields[1] == "1", fields[2].toInt(), fields[3] == "1",
-            !supportsBackpack || fields[4] == "1") else LDLoginUiSettings(),
+            !supportsBackpack || fields[4] == "1").normalized() else LDLoginUiSettings(),
             valid, meta[2] == "1", meta[3])
     }
 
@@ -72,7 +72,7 @@ object ModuleUiRepository {
             val schema = ModuleUiSchema.parse(run("head -c 16385 \"\${BASE}/ui.json\"").joinToString("\n"), moduleId)
             check(schema == snapshot.schema) { "Module đã thay đổi; tải lại cấu hình" }
             val supportsBackpack = schema.fields.any { it.key == "open_backpack" }
-            require(supportsBackpack || settings.openBackpack)
+            require(supportsBackpack || !settings.enabled || settings.openBackpack)
             val backpackArgument = if (supportsBackpack) " ${if (settings.openBackpack) 1 else 0}" else ""
             run("""
                 [ "${'$'}(fingerprint)" = '${snapshot.fingerprint}' ] || exit 20

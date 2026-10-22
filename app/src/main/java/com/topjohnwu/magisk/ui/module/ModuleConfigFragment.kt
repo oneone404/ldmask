@@ -10,12 +10,31 @@ import com.google.android.material.textfield.TextInputEditText
 import com.topjohnwu.magisk.R
 import com.topjohnwu.magisk.arch.BaseFragment
 import com.topjohnwu.magisk.arch.viewModel
+import com.topjohnwu.magisk.core.tasks.LDLoginSwitchPolicy
 import com.topjohnwu.magisk.databinding.FragmentModuleConfigBinding
 
 class ModuleConfigFragment : BaseFragment<FragmentModuleConfigBinding>() {
     override val layoutRes = R.layout.fragment_module_config
     override val viewModel by viewModel<ModuleConfigViewModel>()
     private val inputs = mutableListOf<View>()
+    private val switches = mutableMapOf<String, SwitchMaterial>()
+
+    private fun updateInputStates() {
+        val editable = viewModel.busy.value != true
+        inputs.forEach { it.isEnabled = editable }
+        switches.forEach { (key, control) ->
+            control.isEnabled = editable && LDLoginSwitchPolicy.canChange(key, viewModel.draft)
+        }
+    }
+
+    private fun switchChanged(key: String, checked: Boolean) {
+        LDLoginSwitchPolicy.change(viewModel.draft, key, checked)
+        switches.forEach { (field, control) ->
+            val value = viewModel.draft[field] == true
+            if (control.isChecked != value) control.isChecked = value
+        }
+        updateInputStates()
+    }
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.configSave.setOnClickListener { viewModel.save() }
@@ -26,13 +45,13 @@ class ModuleConfigFragment : BaseFragment<FragmentModuleConfigBinding>() {
             binding.configMessage.visibility = if (it.isNullOrBlank()) View.GONE else View.VISIBLE
         }
         viewModel.busy.observe(viewLifecycleOwner) { busy ->
-            inputs.forEach { it.isEnabled = !busy }
+            updateInputStates()
             binding.configSave.isEnabled = !busy && viewModel.snapshot.value != null
             binding.configReload.isEnabled = !busy
             binding.configOpenGame.isEnabled = !busy
         }
         viewModel.snapshot.observe(viewLifecycleOwner) { data ->
-            binding.configFields.removeAllViews(); inputs.clear()
+            binding.configFields.removeAllViews(); inputs.clear(); switches.clear()
             binding.configSave.isEnabled = data != null && viewModel.busy.value != true
             if (data == null) return@observe
             activity?.setTitle(R.string.ldmask_login_configuration)
@@ -45,7 +64,8 @@ class ModuleConfigFragment : BaseFragment<FragmentModuleConfigBinding>() {
                 if (field.type == "boolean") card.findViewById<SwitchMaterial>(R.id.config_field_switch).apply {
                     visibility = View.VISIBLE; contentDescription = field.label
                     isChecked = viewModel.draft[field.key] == true
-                    setOnCheckedChangeListener { _, checked -> viewModel.draft[field.key] = checked }; inputs += this
+                    switches[field.key] = this
+                    setOnCheckedChangeListener { _, checked -> switchChanged(field.key, checked) }; inputs += this
                     card.isClickable = true; card.isFocusable = true
                     card.setOnClickListener { if (isEnabled) isChecked = !isChecked }
                 } else card.findViewById<TextInputEditText>(R.id.config_field_number).apply {
@@ -55,7 +75,7 @@ class ModuleConfigFragment : BaseFragment<FragmentModuleConfigBinding>() {
                 }
                 binding.configFields.addView(card)
             }
-            inputs.forEach { it.isEnabled = viewModel.busy.value != true }
+            updateInputStates()
         }
         activity?.title = getString(R.string.ldmask_configuration)
         viewModel.open(requireArguments().getString("moduleId").orEmpty())

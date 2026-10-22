@@ -151,3 +151,19 @@ catalog/manifest preserve the two base rows for older app parsers. New app UI
 allows explicit selection; default/null selection excludes the dumper. Use
 `catalog.json` publication flags to hide it, not binary/ZIP rewrites. See
 module-src/ldnph/README.md and VERIFICATION-v1.0.17.md for scope and limits.
+
+## LDLogin / FramLogin split (LDMask 1.0.19, LDLogin 1.27)
+
+The prior section describes historical 1.0.17 behavior. Current `open_backpack` is
+labelled FramLogin, defaults OFF and requires LDLogin ON. The app's tested switch
+policy clears it when LDLogin is turned OFF and does not restore it on re-enable.
+The real native settings reader/writer and FIFO shell gate enforce the dependency.
+Existing explicit ON/ON settings remain valid; missing flags default to login-only.
+
+`test-login-only-loop.ps1 -Serial <serial>` extracts the production main loop and
+account-entry functions with mock PID/input/launcher/finder/clock operations. Tests
+cover absent games beyond 300 seconds, preserved login, no other matched-button
+actions, master OFF/ON, full-mode resumption and OFF during startup/health/capture.
+It never starts/stops or clicks the real game. Updated native settings and generated
+frame tests verify defaults, persistence, switch dependency, real inotify/FIFO and
+that login-only matching does not search BALO/MENU/CONFIRM/OK.

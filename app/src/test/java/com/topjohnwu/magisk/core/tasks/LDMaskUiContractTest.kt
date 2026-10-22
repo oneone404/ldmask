@@ -72,6 +72,38 @@ class LDMaskUiContractTest {
         assertTrue(repo.contains("backpackArgument"))
     }
 
+    @Test fun loginOnlyBranchesBeforeProcessRecoveryAndHealth() {
+        val file = File("../module-src/ldlogin/module/system/bin/app.sh").takeIf { it.isFile }
+            ?: File("module-src/ldlogin/module/system/bin/app.sh")
+        val app = file.readText()
+        val branch = app.substringAfter("# Manual mode stays here indefinitely")
+            .substringBefore("# Return to the complete flow")
+        assertTrue(branch.contains("scan_login_only"))
+        assertTrue(branch.contains("sleep_with_gate \"\$CHECK_INT\""))
+        assertTrue(branch.contains("continue"))
+        for (bad in listOf("pidof", "--health", "am force-stop", "start_target_app", "GAME_LOAD_TIME"))
+            assertFalse(branch.contains(bad))
+        assertTrue(app.indexOf("# Manual mode stays here indefinitely") < app.indexOf("# 2. Kiem tra tien trinh"))
+        val scan = app.substringAfter("scan_login_only() {").substringBefore("# Thoi gian cho")
+        assertTrue(scan.contains("--login-only"))
+        assertTrue(scan.contains("login_from_result"))
+        assertFalse(scan.contains("pidof"))
+        assertTrue(app.substringAfter("start_target_app() {").substringBefore("# Ham cho")
+            .contains("backpack_may_act || return 1"))
+    }
+
+    @Test fun framLoginUiRespectsMasterEvenAfterBusyStateChanges() {
+        val fragment = source("java/com/topjohnwu/magisk/ui/module/ModuleConfigFragment.kt")
+        assertTrue(fragment.contains("LDLoginSwitchPolicy.canChange(key, viewModel.draft)"))
+        assertTrue(fragment.contains("LDLoginSwitchPolicy.change(viewModel.draft, key, checked)"))
+        assertTrue(fragment.contains("if (control.isChecked != value) control.isChecked = value"))
+        assertTrue(fragment.contains("if (isEnabled) isChecked = !isChecked"))
+        assertTrue(fragment.substringAfter("viewModel.busy.observe").substringBefore("viewModel.snapshot.observe")
+            .contains("updateInputStates()"))
+        val vm = source("java/com/topjohnwu/magisk/ui/module/ModuleConfigViewModel.kt")
+        assertTrue(vm.contains("draft.filterKeys { it != \"open_backpack\" }"))
+    }
+
     @Test fun cleanupIsAnAlwaysVisibleToolbarAction() {
         val xml = source("res/menu/menu_module_ldmask.xml")
         assertTrue(xml.contains("action_tools_cleanup"))

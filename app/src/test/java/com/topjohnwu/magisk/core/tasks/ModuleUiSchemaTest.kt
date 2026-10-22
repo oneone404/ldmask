@@ -13,8 +13,8 @@ class ModuleUiSchemaTest {
         assertEquals(listOf("boolean", "boolean", "integer", "boolean"), ui.fields.map { it.type })
         assertEquals("Cấu Hình LDLogin", ui.title)
         assertEquals("LDLogin", ui.fields.first().label)
-        assertEquals("Mở Balo", ui.fields[1].label)
-        assertEquals(true, ui.fields[1].default)
+        assertEquals("FramLogin", ui.fields[1].label)
+        assertEquals(false, ui.fields[1].default)
     }
     @Test fun rejectsCommandsPathsForeignSettingsAndDuplicateKeys() {
         val json = descriptor()
@@ -34,7 +34,7 @@ class ModuleUiSchemaTest {
     }
     @Test fun valuesAreTypedBoundedAndOffByDefault() {
         assertEquals(LDLoginUiSettings(false, 30, false), LDLoginUiSettings())
-        assertEquals(LDLoginUiSettings(true, 600, true), LDLoginUiSettings.from(mapOf("enabled" to true, "boot_wait_seconds" to 600, "logging" to true)))
+        assertEquals(LDLoginUiSettings(true, 600, true, true), LDLoginUiSettings.from(mapOf("enabled" to true, "boot_wait_seconds" to 600, "logging" to true)))
         for (value in listOf(-1, 601, "30", 30.0, true)) {
             assertTrue(runCatching { LDLoginUiSettings.from(mapOf("enabled" to true, "boot_wait_seconds" to value, "logging" to false)) }.isFailure)
         }
@@ -49,6 +49,34 @@ class ModuleUiSchemaTest {
     @Test fun legacyThreeFieldDescriptorStillWorks() {
         val old = descriptor().lineSequence().filterNot { it.contains("open_backpack") }.joinToString("\n")
         assertEquals(3, ModuleUiSchema.parse(old, "ldlogin").fields.size)
-        assertTrue(LDLoginUiSettings().openBackpack)
+        assertFalse(LDLoginUiSettings().openBackpack)
+        val legacyFour = descriptor().replace("\"label\": \"FramLogin\", \"default\": false", "\"label\": \"Mở Balo\", \"default\": true")
+        assertTrue(ModuleUiSchema.parse(legacyFour, "ldlogin").fields[1].default as Boolean)
+    }
+
+    @Test fun framLoginRequiresLoginAndDoesNotResumeAfterMasterToggle() {
+        val values = LDLoginUiSettings().values().toMutableMap()
+        assertFalse(LDLoginSwitchPolicy.canChange("open_backpack", values))
+        LDLoginSwitchPolicy.change(values, "open_backpack", true)
+        assertEquals(false, values["open_backpack"])
+        LDLoginSwitchPolicy.change(values, "enabled", true)
+        assertEquals(false, values["open_backpack"])
+        assertTrue(LDLoginSwitchPolicy.canChange("open_backpack", values))
+        LDLoginSwitchPolicy.change(values, "open_backpack", true)
+        assertEquals(true, values["open_backpack"])
+        LDLoginSwitchPolicy.change(values, "enabled", false)
+        assertEquals(false, values["open_backpack"])
+        LDLoginSwitchPolicy.change(values, "enabled", true)
+        assertEquals(false, values["open_backpack"])
+    }
+
+    @Test fun persistedFarmCannotBypassDisabledLogin() {
+        val settings = LDLoginUiSettings.from(mapOf("enabled" to false, "boot_wait_seconds" to 30,
+            "logging" to false, "open_backpack" to true))
+        assertFalse(settings.enabled)
+        assertFalse(settings.openBackpack)
+        assertEquals(LDLoginUiSettings(), LDLoginUiSettings(openBackpack = true).normalized())
+        assertEquals(LDLoginUiSettings(true, openBackpack = true),
+            LDLoginUiSettings(true, openBackpack = true).normalized())
     }
 }

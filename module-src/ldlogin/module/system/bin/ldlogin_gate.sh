@@ -88,7 +88,8 @@ gate_accept_frame() {
     if [ "$OPEN_BACKPACK" = 1 ] && [ "$GATE_MSG_BACKPACK" = 0 ]; then
         GATE_BACKPACK_OFF_SEQUENCE=$((GATE_BACKPACK_OFF_SEQUENCE + 1))
     fi
-    OPEN_BACKPACK="$GATE_MSG_BACKPACK"
+    OPEN_BACKPACK=0
+    [ "$BOT_RUN_ALLOWED" != 1 ] || OPEN_BACKPACK="$GATE_MSG_BACKPACK"
     ENABLE_LOG="$GATE_MSG_LOG"
     [ "$previous" = "$BOT_RUN_ALLOWED" ] || log_msg "[CONFIG] LDLogin enabled -> bot: $BOT_RUN_ALLOWED"
     return 0

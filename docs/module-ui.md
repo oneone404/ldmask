@@ -13,8 +13,23 @@ Only settingsId=ldlogin/module ID=ldlogin is currently registered. Three typed k
 are required: enabled (Boolean/default false), boot_wait_seconds (integer/default30,
 0..600) and logging (Boolean/defaultfalse). The bot switch label is LDLogin without
 a Bật prefix. There is no game picker: com.vng.playtogether is the only bot target.
-Schema is limited to 16KiB, three fields, bounded text and no duplicate/unknown keys.
+Schema is limited to 16KiB, three or four fields, bounded text and no duplicate/unknown keys.
 New module settings backends require code review/explicit host registration.
+
+Since LDMask 1.0.19 / LDLogin 1.27, the fourth field `open_backpack` is labelled
+`FramLogin`, defaults OFF and requires LDLogin ON. Turning LDLogin OFF also clears
+FramLogin in the draft; it stays disabled (including row clicks and after busy-state
+changes) until LDLogin is enabled. Re-enabling LDLogin does not enable FramLogin.
+Save is still explicit. Existing explicit ON/ON configuration is preserved on load.
+The native reader/writer and runtime gate also suppress FramLogin when LDLogin is OFF.
+Legacy four-field descriptors remain readable. A three-field legacy module retains
+its original implicit automation; update the module to get the split runtime.
+
+With LDLogin ON / FramLogin OFF, the bot matches only LOGIN about once per five
+seconds plus capture/processing time, indefinitely. Account selection and entry are
+unchanged. No game launcher, PID/health monitoring, force-stop, BALO/MENU/CONFIRM/OK
+actions or racket flow runs in this mode. FramLogin ON restores the full guarded
+startup/recovery/backpack flow. Manual Mở Game remains a separate explicit action.
 
 Data is /data/adb/ldlogin/settings.json. The module native finder reads and saves
 it, with chmod0600, fsync and same-directory rename. The host does not invent another

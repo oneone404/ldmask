@@ -13,7 +13,7 @@ struct LDLoginSettings {
     bool enabled = false;
     unsigned boot_wait_seconds = 30;
     bool logging = false;
-    bool open_backpack = true; // Preserve behavior for valid older settings.
+    bool open_backpack = false; // FramLogin must be explicitly enabled with LDLogin.
 };
 
 // Validate the whole document. Only LDLogin's root-level typed fields are used.
@@ -208,6 +208,7 @@ public:
         space();
         if (pos_ != text_.size()) return false;
         settings = settings_;
+        settings.open_backpack = settings.enabled && settings.open_backpack;
         return true;
     }
     bool parse(bool& enabled) {
@@ -264,7 +265,7 @@ inline bool save_settings_file(const char* path, const LDLoginSettings& settings
     int length = std::snprintf(json, sizeof(json),
         "{\"enabled\":%s,\"boot_wait_seconds\":%u,\"logging\":%s,\"open_backpack\":%s}\n",
         settings.enabled ? "true" : "false", settings.boot_wait_seconds,
-        settings.logging ? "true" : "false", settings.open_backpack ? "true" : "false");
+        settings.logging ? "true" : "false", settings.enabled && settings.open_backpack ? "true" : "false");
     bool ok = fchmod(fd, 0600) == 0;
     int written = 0;
     while (ok && written < length) {

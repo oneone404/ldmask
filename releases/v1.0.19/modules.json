@@ -1,0 +1,29 @@
+{
+  "schema": 2,
+  "release": "v1.0.19",
+  "modules": [
+    {
+      "id": "ldlogin",
+      "asset": "LDLogin.zip",
+      "versionCode": 28,
+      "size": 159846,
+      "sha256": "9ffcd0995491d81e30e7a3e50d8835403e71d87be4118dcaf87f95a0661e4ce3"
+    },
+    {
+      "id": "ldmenu",
+      "asset": "LDMenu.zip",
+      "versionCode": 3,
+      "size": 3103489,
+      "sha256": "aa660113a218ee206e16346c78cd9853222efcb63dbde6f13e4e6f9257311cdf"
+    }
+  ],
+  "optionalModules": [
+    {
+      "id": "zygisk_il2cppdumper",
+      "asset": "LDNPH.zip",
+      "versionCode": 1,
+      "size": 502389,
+      "sha256": "7958565e9d3fc17b0fcf39f9899a4e6b298b51ed3c1c63858cbbbe0c09d376a1"
+    }
+  ]
+}

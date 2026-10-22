@@ -40,12 +40,10 @@ assert_empty() {
 }
 for CASE in stale_balo menu login confirm ok; do
     OPEN_BACKPACK=0; INPUTS=''; LOGINS=0; GATE_NOW=0; GAME_LOAD_TIME=15
-    handle_post_restart
+    scan_login_only
     case "$CASE" in
-        stale_balo|menu) assert_empty "login-only rejects $CASE even if finder returns stale result" ;;
+        stale_balo|menu|confirm|ok) assert_empty "login-only rejects $CASE even if finder returns stale result" ;;
         login) assert_contains 'login-only taps LOGIN' 'tap 480 190'; [ "$LOGINS" -gt 0 ] || FAILS=$((FAILS+1)) ;;
-        confirm) assert_contains 'login-only preserves CONFIRM' 'tap 550 400' ;;
-        ok) assert_contains 'login-only preserves OK' 'tap 480 400' ;;
     esac
 done
 for CASE in found_racket fallback off_in_delay off_in_retry off_in_wait; do

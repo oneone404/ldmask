@@ -37,8 +37,9 @@ data class ModuleUiSchema(val title: String, val fields: List<ModuleUiField>) {
                     require(type == "integer" && map["default"] == 30 && map["min"] == 0 && map["max"] == 600)
                     ModuleUiField(key, type, name, description, 30, 0, 600)
                 } else {
-                    val default = key == "open_backpack"
-                    require(type == "boolean" && map["default"] == default)
+                    // Accept old descriptors too; current FramLogin defaults OFF.
+                    val default = map["default"] as? Boolean ?: error("Boolean required")
+                    require(type == "boolean" && (key == "open_backpack" || !default))
                     ModuleUiField(key, type, name, description, default)
                 }
             }
@@ -81,9 +82,21 @@ data class ModuleUiSchema(val title: String, val fields: List<ModuleUiField>) {
     }
 }
 
+/** Switch dependency shared by row clicks and direct switch changes. */
+object LDLoginSwitchPolicy {
+    fun canChange(key: String, values: Map<String, Any>): Boolean =
+        key != "open_backpack" || values["enabled"] == true
+
+    fun change(values: MutableMap<String, Any>, key: String, checked: Boolean) {
+        values[key] = checked && canChange(key, values)
+        if (key == "enabled" && !checked) values["open_backpack"] = false
+    }
+}
+
 data class LDLoginUiSettings(val enabled: Boolean = false, val bootWait: Int = 30, val logging: Boolean = false,
-    val openBackpack: Boolean = true) {
+    val openBackpack: Boolean = false) {
     init { require(bootWait in 0..600) }
+    fun normalized(): LDLoginUiSettings = if (enabled) this else copy(openBackpack = false)
     fun values(): Map<String, Any> = mapOf("enabled" to enabled, "boot_wait_seconds" to bootWait, "logging" to logging,
         "open_backpack" to openBackpack)
     companion object {
@@ -94,6 +107,7 @@ data class LDLoginUiSettings(val enabled: Boolean = false, val bootWait: Int = 3
                 values["boot_wait_seconds"] as? Int ?: error("Integer required"),
                 values["logging"] as? Boolean ?: error("Boolean required"),
                 if ("open_backpack" in values) values["open_backpack"] as? Boolean ?: error("Boolean required") else true)
+                .normalized()
         }
     }
 }

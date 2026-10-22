@@ -1,7 +1,7 @@
 id=ldlogin
 name=LDLogin
-version=v1.25
-versionCode=26
+version=v1.27
+versionCode=28
 author=
 description=
 updateJson=https://github.com/oneone404/ldmask/releases/latest/download/LDLogin-update.json

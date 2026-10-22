@@ -104,26 +104,26 @@ EOF
 }
 
 start_target_app() {
-    bot_may_act || return 1
+    backpack_may_act || return 1
     PKG="$1"
     log_msg "[START] Dang mo lai app $PKG ..."
 
     LAUNCH_ACT=$(cmd package resolve-activity --brief "$PKG" 2>/dev/null | tail -n 1)
     if [ -n "$LAUNCH_ACT" ] && [ "$LAUNCH_ACT" != "No activity found" ] && [ "$LAUNCH_ACT" != "$PKG" ]; then
-        bot_may_act || return 1
+        backpack_may_act || return 1
         am start -n "$LAUNCH_ACT" > /dev/null 2>&1
     fi
 
-    bot_may_act || return 1
+    backpack_may_act || return 1
     monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 > /dev/null 2>&1
-    bot_may_act || return 1
+    backpack_may_act || return 1
     monkey -p "$PKG" 1 > /dev/null 2>&1
 }
 
 # Ham cho va giam sat crash (tra ve 0 neu thanh cong, 1 neu bi crash)
 wait_and_watch_crash() {
     DURATION="$1"
-    local scope="$2"
+    local scope="${2:-automation}"
     ELAPSED=0
 
     while [ "$ELAPSED" -lt "$DURATION" ]; do
@@ -131,13 +131,13 @@ wait_and_watch_crash() {
         if [ "$BOT_RUN_ALLOWED" != "1" ] || [ "$BOT_ACTIVE" != "1" ]; then
             return 1
         fi
-        [ "$scope" != backpack ] || [ "$OPEN_BACKPACK" = 1 ] || return 1
+        backpack_may_act || return 1
         PID_NOW=$(pidof "$TARGET_PKG" 2>/dev/null | cut -d ' ' -f1)
         if [ -z "$PID_NOW" ]; then
             log_msg "[ALERT] Game bi crash luc dang cho o giay thu $ELAPSED/$DURATION! Dang khoi dong lai..."
-            bot_may_act || return 1
+            backpack_may_act || return 1
             am force-stop "$TARGET_PKG" > /dev/null 2>&1
-            sleep_with_gate 1 || return 1
+            sleep_with_gate 1 automation || return 1
             start_target_app "$TARGET_PKG"
             return 1
         fi
@@ -155,6 +155,7 @@ handle_post_restart() {
             log_msg "[AUTO] BOT_RUN_ALLOWED dang tat -> Dung hanh dong!"
             return 0
         fi
+        backpack_may_act || return 0
 
         gate_clock
         START_TIME="$GATE_NOW"
@@ -162,6 +163,7 @@ handle_post_restart() {
         # 1. Cho 30s dau tien cho game khoi dong va giam sat crash
         log_msg "[AUTO] Cho $WAIT_BEFORE_MENU giay cho game khoi dong (Giam sat crash)..."
         if ! wait_and_watch_crash "$WAIT_BEFORE_MENU"; then
+            backpack_may_act || return 0
             reload_runtime_state
             if [ "$BOT_RUN_ALLOWED" != "1" ] || [ "$BOT_ACTIVE" != "1" ]; then
                 log_msg "[AUTO] BOT_RUN_ALLOWED dang tat -> Dung hanh dong!"
@@ -184,6 +186,7 @@ handle_post_restart() {
                 log_msg "[AUTO] BOT_RUN_ALLOWED dang tat -> Dung hanh dong!"
                 return 0
             fi
+            backpack_may_act || return 0
 
             gate_clock
             NOW="$GATE_NOW"
@@ -199,21 +202,17 @@ handle_post_restart() {
             PID_NOW=$(pidof "$TARGET_PKG" 2>/dev/null | cut -d ' ' -f1)
             if [ -z "$PID_NOW" ]; then
                 log_msg "[ALERT] Game bi crash o giay thu ${ELAPSED}s! Dang khoi dong lai..."
-                bot_may_act || return 0
+                backpack_may_act || return 0
                 am force-stop "$TARGET_PKG" > /dev/null 2>&1
-                sleep_with_gate 1 || return 0
+                sleep_with_gate 1 automation || return 0
                 start_target_app "$TARGET_PKG"
                 continue 2
             fi
 
             # Mot screencap RAM quet toan bo chuoi nut theo thu tu uu tien.
             if [ -x "$FINDER_V2" ]; then
-                if [ "$OPEN_BACKPACK" = 1 ]; then
-                    RES_BATCH=$("$FINDER_V2" --batch "$IMAGES_DIR" 2>/dev/null)
-                else
-                    RES_BATCH=$("$FINDER_V2" --batch "$IMAGES_DIR" --login-only 2>/dev/null)
-                fi
-                bot_may_act || return 0
+                RES_BATCH=$("$FINDER_V2" --batch "$IMAGES_DIR" 2>/dev/null)
+                backpack_may_act || return 0
                 if echo "$RES_BATCH" | grep -q '^FOUND '; then
                     B_TAG=$(echo "$RES_BATCH" | awk '{print $2}')
                     B_X=$(echo "$RES_BATCH" | awk '{print $3}')
@@ -282,11 +281,7 @@ handle_post_restart() {
                             return 0
                             ;;
                         LOGIN)
-                            input tap "$B_X" "$B_Y"
-                            log_msg "[SUCCESS] $RES_BATCH -> Da an [Nut Dang Nhap (ZingID)]!"
-                            sleep_with_gate 2 || return 0
-                            perform_login
-                            sleep_with_gate 2 || return 0
+                            login_from_result "$RES_BATCH"
                             continue
                             ;;
                         MENU)
@@ -296,6 +291,7 @@ handle_post_restart() {
                             continue
                             ;;
                         CONFIRM|OK)
+                            backpack_may_act || return 0
                             input tap "$B_X" "$B_Y"
                             log_msg "[SUCCESS] $RES_BATCH -> Da an [$B_TAG]!"
                             sleep_with_gate 1 || return 0
@@ -307,11 +303,11 @@ handle_post_restart() {
                         log_msg "[TIMEOUT] Sau ${GAME_LOAD_TIME}s van chua xac nhan lay vot. Dung tu dong nhan dien va chuyen sang canh vang."
                         return 1
                     fi
-                    sleep_with_gate "$CHECK_INT" || return 0
+                    sleep_with_gate "$CHECK_INT" automation || return 0
                     continue
                 fi
                 log_msg "[ERROR] ldlogin_finder loi capture/load: $RES_BATCH"
-                sleep_with_gate "$CHECK_INT" || return 0
+                sleep_with_gate "$CHECK_INT" automation || return 0
                 continue
             else
                 log_msg "[ERROR] Khong tim thay ldlogin_finder executable. Dung luong tu dong nhan dien."
@@ -322,6 +318,34 @@ handle_post_restart() {
         log_msg "[HOAN TAT] Da vao dao va trang bi vot thanh cong! Chuyen sang che do canh vang..."
         break
     done
+}
+
+# Same account-entry flow in both modes. Never treat another match tag as LOGIN.
+login_from_result() {
+    local tag action x y score extra
+    IFS=' ' read -r tag action x y score extra <<EOF
+$1
+EOF
+    [ "$tag" = FOUND ] && [ "$action" = LOGIN ] && [ -n "$score" ] && [ -z "$extra" ] || return 1
+    case "$x:$y" in *[!0-9:]*|:*|*:) return 1 ;; esac
+    [ "${#x}" -le 3 ] && [ "${#y}" -le 3 ] && [ "$x" -lt 960 ] && [ "$y" -lt 540 ] || return 1
+    bot_may_act || return 1
+    input tap "$x" "$y" || return 1
+    log_msg "[LOGIN] Da an nut Dang Nhap (ZingID)."
+    sleep_with_gate 2 || return 1
+    perform_login || return 1
+    sleep_with_gate 2
+}
+
+# One screenshot per scan; no PID lookup, launcher, health check or 300s deadline.
+scan_login_only() {
+    bot_may_act || return 0
+    [ "$OPEN_BACKPACK" != 1 ] && [ -x "$FINDER_V2" ] || return 0
+    local result
+    result=$("$FINDER_V2" --batch "$IMAGES_DIR" --login-only 2>/dev/null)
+    bot_may_act || return 0
+    [ "$OPEN_BACKPACK" != 1 ] || return 0
+    login_from_result "$result"
 }
 
 # Thoi gian cho co dinh (Hard-coded)
@@ -374,7 +398,7 @@ sleep_with_gate() {
         wait_bot_gate "$step"
         [ "$stopped" = "$GATE_OFF_SEQUENCE" ] || return 1
         bot_may_act || return 1
-        if [ "$scope" = backpack ]; then
+        if [ "$scope" = backpack ] || [ "$scope" = automation ]; then
             [ "$OPEN_BACKPACK" = 1 ] && [ "$backpack_stopped" = "$GATE_BACKPACK_OFF_SEQUENCE" ] || return 1
         fi
         gate_clock
@@ -397,6 +421,7 @@ OK_STUCK_COUNT=0
 LAST_OK_PRESENT=0
 LAST_TIMER_CHECK=0
 LAST_BACKPACK_MODE=0
+LAST_AUTOMATION_SEQUENCE=-1
 
 while true; do
     # 1. Cap nhat setting LDLogin qua FIFO.
@@ -413,6 +438,28 @@ while true; do
         LAST_TIMER_PATTERN=""
         wait_bot_gate "$GATE_IDLE_SECONDS"
         continue
+    fi
+
+    # Manual mode stays here indefinitely, before any game PID/health/start logic.
+    if [ "$OPEN_BACKPACK" != 1 ]; then
+        BOT_ACTIVE=1
+        LAST_BACKPACK_MODE=0
+        CACHED_PID=""
+        LAST_TIMER_CHECK=0
+        TIMER_STUCK_COUNT=0
+        OK_STUCK_COUNT=0
+        LAST_OK_PRESENT=0
+        LAST_TIMER_PATTERN=""
+        scan_login_only
+        sleep_with_gate "$CHECK_INT"
+        continue
+    fi
+
+    # Return to the complete flow with fresh counters; do not reuse a stale health verdict.
+    if [ "$LAST_BACKPACK_MODE" != 1 ] || [ "$LAST_AUTOMATION_SEQUENCE" != "$GATE_BACKPACK_OFF_SEQUENCE" ]; then
+        BOT_ACTIVE=0
+        LAST_BACKPACK_MODE=1
+        LAST_AUTOMATION_SEQUENCE="$GATE_BACKPACK_OFF_SEQUENCE"
     fi
 
     # 2. Kiem tra tien trinh qua PID cache va /proc.
@@ -440,36 +487,26 @@ while true; do
         LAST_OK_PRESENT=0
         LAST_TIMER_PATTERN=""
         if [ "$APP_ALIVE" -eq 0 ]; then
-            log_msg "[START] LDLogin enabled. Dang mo game..."
-            bot_may_act || continue
+            log_msg "[START] FramLogin enabled. Dang mo game..."
+            backpack_may_act || continue
             am force-stop "$TARGET_PKG" > /dev/null 2>&1
-            sleep_with_gate 1 || continue
+            sleep_with_gate 1 automation || continue
             start_target_app "$TARGET_PKG"
             CACHED_PID=""
         else
-            log_msg "[START] LDLogin enabled. Game da chay; xu ly vao dao va lay vot..."
+            log_msg "[START] FramLogin enabled. Game da chay; xu ly vao dao va lay vot..."
         fi
         handle_post_restart
         LAST_BACKPACK_MODE="$OPEN_BACKPACK"
         continue
     fi
 
-    # Enabling backpack after login-only monitoring starts a fresh image flow, not a game restart.
-    if [ "$LAST_BACKPACK_MODE" != "$OPEN_BACKPACK" ]; then
-        LAST_BACKPACK_MODE="$OPEN_BACKPACK"
-        if [ "$OPEN_BACKPACK" = 1 ]; then
-            handle_post_restart
-            LAST_BACKPACK_MODE="$OPEN_BACKPACK"
-            continue
-        fi
-    fi
-
     # 3. Neu app bi vang / tat -> Khoi dong lai va chay chuoi xu ly day du
     if [ "$APP_ALIVE" -eq 0 ]; then
         log_msg "[ALERT] App $TARGET_PKG bi vang/tat! Dang khoi dong lai..."
-        bot_may_act || continue
+        backpack_may_act || continue
         am force-stop "$TARGET_PKG" > /dev/null 2>&1
-        sleep_with_gate 1 || continue
+        sleep_with_gate 1 automation || continue
         start_target_app "$TARGET_PKG"
         CACHED_PID=""
         LAST_TIMER_CHECK=0
@@ -488,10 +525,11 @@ while true; do
     gate_clock
     NOW_TIMER="$GATE_NOW"
     if [ "$LAST_TIMER_CHECK" -eq 0 ] || [ $((NOW_TIMER - LAST_TIMER_CHECK)) -ge 30 ]; then
+        backpack_may_act || continue
         LAST_TIMER_CHECK="$NOW_TIMER"
         # One bounded RAM capture supplies both the timer and OK checks.
         RES_HEALTH=$("$FINDER_V2" --health "$IMAGES_DIR" 2>/dev/null)
-        bot_may_act || continue
+        backpack_may_act || continue
         set -- $RES_HEALTH
         if [ "$1" != HEALTH ]; then
             log_msg "[WARN] Khong lay duoc mau dong ho/OK hop le; xoa bo dem, khong restart nham."
@@ -541,9 +579,9 @@ while true; do
                 RESTART_REASON="Game/Auto bi do time suot 60s"
             fi
             log_msg "[ALERT] $RESTART_REASON! Dang khoi dong lai..."
-            bot_may_act || continue
+            backpack_may_act || continue
             am force-stop "$TARGET_PKG" > /dev/null 2>&1
-            sleep_with_gate 1 || continue
+            sleep_with_gate 1 automation || continue
             start_target_app "$TARGET_PKG"
             CACHED_PID=""
             LAST_TIMER_CHECK=0

@@ -36,7 +36,10 @@ class ModuleConfigViewModel : BaseViewModel() {
     fun save() {
         if (busy.value == true) return
         val old = snapshot.value ?: return
-        val values = try { LDLoginUiSettings.from(draft) } catch (_: Exception) {
+        val values = try {
+            val supportsFramLogin = old.schema.fields.any { it.key == "open_backpack" }
+            LDLoginUiSettings.from(if (supportsFramLogin) draft else draft.filterKeys { it != "open_backpack" })
+        } catch (_: Exception) {
             message.value = "Thời gian chờ phải là số nguyên từ 0 đến 600 giây."; return
         }
         busy.value = true

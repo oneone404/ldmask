@@ -50,7 +50,7 @@ for TAG in BALO MENU LOGIN CONFIRM OK; do
  RESULT=$("$ROOT/finder" --batch "$ROOT/images" --screen "$ROOT/$TAG.png")
  case "$RESULT" in "FOUND $TAG "*) echo "PASS native default matches $TAG" ;; *) echo "FAIL default $TAG: $RESULT"; FAILS=$((FAILS+1)) ;; esac
  RESULT=$("$ROOT/finder" --batch "$ROOT/images" --screen "$ROOT/$TAG.png" --login-only)
- case "$TAG:$RESULT" in BALO:NOT_FOUND*|MENU:NOT_FOUND*|LOGIN:'FOUND LOGIN '*|CONFIRM:'FOUND CONFIRM '*|OK:'FOUND OK '*) echo "PASS native login-only $TAG" ;; *) echo "FAIL login-only $TAG: $RESULT"; FAILS=$((FAILS+1)) ;; esac
+ case "$TAG:$RESULT" in BALO:NOT_FOUND*|MENU:NOT_FOUND*|CONFIRM:NOT_FOUND*|OK:NOT_FOUND*|LOGIN:'FOUND LOGIN '*) echo "PASS native login-only $TAG" ;; *) echo "FAIL login-only $TAG: $RESULT"; FAILS=$((FAILS+1)) ;; esac
 done
 FILE="$ROOT/settings.json"
 "$ROOT/finder" --save-settings "$FILE" 1 30 0 1 >/dev/null || exit 20
@@ -71,7 +71,7 @@ wait_frame '^STATE2 [0-9]* [0-9]* 1 [0-9]* 0 0$' && echo 'PASS inotify publishes
 "$ROOT/finder" --save-settings "$FILE" 1 30 0 1 >/dev/null
 wait_frame '^STATE2 [0-9]* [0-9]* 1 [0-9]* 0 1$' && echo 'PASS inotify publishes backpack-only ON change'
 printf '{"enabled":true,"open_backpack":"bad"}' > "$FILE"
-wait_frame '^STATE2 [0-9]* [0-9]* 0 [0-9]* 0 1$' && echo 'PASS watcher malformed settings shuts bot OFF'
+wait_frame '^STATE2 [0-9]* [0-9]* 0 [0-9]* 0 0$' && echo 'PASS watcher malformed settings shuts bot and FramLogin OFF'
 kill "$WATCH"; wait "$WATCH"
 . "$ROOT/gate.sh"
 log_msg() { :; }
@@ -88,6 +88,14 @@ if [ "$BOT_RUN_ALLOWED" = 1 ] && [ "$OPEN_BACKPACK" = 1 ]; then echo 'PASS shell
 "$ROOT/finder" --save-settings "$FILE" 0 30 0 0 >/dev/null
 wait_bot_gate 2
 if [ "$BOT_RUN_ALLOWED" = 0 ] && [ "$OPEN_BACKPACK" = 0 ]; then echo 'PASS shell gate disables bot safely'; else FAILS=$((FAILS+1)); echo 'FAIL shell gate bot OFF'; fi
+"$ROOT/finder" --save-settings "$FILE" 1 30 0 >/dev/null
+wait_bot_gate 2
+if [ "$BOT_RUN_ALLOWED" = 1 ] && [ "$OPEN_BACKPACK" = 0 ]; then echo 'PASS re-enabling LDLogin leaves FramLogin OFF'; else FAILS=$((FAILS+1)); echo 'FAIL implicit FramLogin re-enable'; fi
+gate_clock
+GATE_MSG_TAG=STATE2; GATE_MSG_PID="$GATE_WATCH_PID"; GATE_MSG_SEQ=$((GATE_SEQUENCE+1))
+GATE_MSG_TIME="$GATE_NOW"; GATE_MSG_VALUE=0; GATE_MSG_LOG=0; GATE_MSG_BACKPACK=1; GATE_MSG_EXTRA=''
+gate_accept_frame
+if [ "$BOT_RUN_ALLOWED" = 0 ] && [ "$OPEN_BACKPACK" = 0 ]; then echo 'PASS shell blocks orphan FramLogin even with inconsistent frame'; else FAILS=$((FAILS+1)); echo 'FAIL inconsistent frame enabled FramLogin'; fi
 gate_stop_watcher
 echo "Failures: $FAILS"
 exit "$FAILS"
