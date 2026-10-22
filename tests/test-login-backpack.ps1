@@ -42,10 +42,29 @@ for CASE in stale_balo menu login confirm ok; do
     OPEN_BACKPACK=0; INPUTS=''; LOGINS=0; GATE_NOW=0; GAME_LOAD_TIME=15
     scan_login_only
     case "$CASE" in
-        stale_balo|menu|confirm|ok) assert_empty "login-only rejects $CASE even if finder returns stale result" ;;
+        stale_balo|menu) assert_empty "login-only rejects $CASE even if finder returns stale result" ;;
+        confirm|ok)
+            if [ "$CASE" = confirm ]; then assert_contains 'login-only taps CONFIRM' 'tap 550 400'; else assert_contains 'login-only taps OK' 'tap 480 400'; fi
+            [ "$LOGINS" = 0 ] || { echo "FAIL popup consumed account: $CASE"; FAILS=$((FAILS+1)); } ;;
         login) assert_contains 'login-only taps LOGIN' 'tap 480 190'; [ "$LOGINS" -gt 0 ] || FAILS=$((FAILS+1)) ;;
     esac
 done
+for BAD_RESULT in 'FOUND MENU 700 80 1.00' 'FOUND BALO 910 310 1.00' \
+    'FOUND OK 960 400 1.00' 'FOUND CONFIRM 550 540 1.00' 'FOUND OK -1 400 1.00' \
+    'FOUND OK 480 400 NaN' 'FOUND CONFIRM 550 400' 'FOUND OK 480 400 1.00 extra' \
+    'NOT_FOUND 0.00'; do
+    INPUTS=''; LOGINS=0
+    login_from_result "$BAD_RESULT"
+    assert_empty 'invalid/non-login-flow result cannot tap'
+    [ "$LOGINS" = 0 ] || FAILS=$((FAILS+1))
+done
+for ACTION in LOGIN CONFIRM OK; do
+    INPUTS=''; LOGINS=0; BOT_RUN_ALLOWED=0
+    login_from_result "FOUND $ACTION 480 400 1.00"
+    assert_empty "master OFF blocks $ACTION"
+    [ "$LOGINS" = 0 ] || FAILS=$((FAILS+1))
+done
+BOT_RUN_ALLOWED=1
 for CASE in found_racket fallback off_in_delay off_in_retry off_in_wait; do
     OPEN_BACKPACK=1; INPUTS=''; LOGINS=0; GATE_NOW=0; GAME_LOAD_TIME=100
     handle_post_restart

@@ -50,7 +50,7 @@ for TAG in BALO MENU LOGIN CONFIRM OK; do
  RESULT=$("$ROOT/finder" --batch "$ROOT/images" --screen "$ROOT/$TAG.png")
  case "$RESULT" in "FOUND $TAG "*) echo "PASS native default matches $TAG" ;; *) echo "FAIL default $TAG: $RESULT"; FAILS=$((FAILS+1)) ;; esac
  RESULT=$("$ROOT/finder" --batch "$ROOT/images" --screen "$ROOT/$TAG.png" --login-only)
- case "$TAG:$RESULT" in BALO:NOT_FOUND*|MENU:NOT_FOUND*|CONFIRM:NOT_FOUND*|OK:NOT_FOUND*|LOGIN:'FOUND LOGIN '*) echo "PASS native login-only $TAG" ;; *) echo "FAIL login-only $TAG: $RESULT"; FAILS=$((FAILS+1)) ;; esac
+ case "$TAG:$RESULT" in BALO:NOT_FOUND*|MENU:NOT_FOUND*|CONFIRM:'FOUND CONFIRM '*|OK:'FOUND OK '*|LOGIN:'FOUND LOGIN '*) echo "PASS native login-only $TAG" ;; *) echo "FAIL login-only $TAG: $RESULT"; FAILS=$((FAILS+1)) ;; esac
 done
 FILE="$ROOT/settings.json"
 "$ROOT/finder" --save-settings "$FILE" 1 30 0 1 >/dev/null || exit 20

@@ -153,8 +153,9 @@ static int run_batch(const char* image_dir, bool click, const char* screen_path,
     MatchResult best;
     Image winner_template;
     for (const BatchSpec& spec : specs) {
-        // Manual/login-only mode decodes and searches only the login template.
-        if (!open_backpack && std::strcmp(spec.tag, "LOGIN")) continue;
+        // Manual/login-only mode keeps login popups, never backpack or menu actions.
+        if (!open_backpack && std::strcmp(spec.tag, "LOGIN") &&
+            std::strcmp(spec.tag, "CONFIRM") && std::strcmp(spec.tag, "OK")) continue;
         std::string path = std::string(image_dir) + "/" + spec.file;
         Image templ;
         if (!load_png(path.c_str(), templ)) continue;

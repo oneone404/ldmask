@@ -28,6 +28,12 @@ case "$1" in
      manual_menu) echo 'FOUND MENU 700 80 1.00' ;;
      manual_balo) echo 'FOUND BALO 910 310 1.00' ;;
      manual_confirm) echo 'FOUND CONFIRM 550 400 1.00' ;;
+     manual_sequence)
+       case "$(grep -c '^FINDER --batch ' "$ROOT/ops")" in
+         1) echo 'FOUND CONFIRM 550 400 1.00' ;;
+         2) echo 'FOUND OK 480 400 1.00' ;;
+         3) echo 'FOUND LOGIN 480 190 1.00' ;;
+       esac ;;
      *) echo NOT_FOUND ;;
    esac ;;
  --account) echo 'ACCOUNT|LD-Fixture|fixture_user|fixture_password' ;;
@@ -67,7 +73,7 @@ input() { echo "INPUT $*" >> "$ROOT/ops"; }
 '@
 $header=@'
 FAILS=0
-for CASE in manual_absent manual_login manual_ok manual_menu manual_balo manual_confirm master_off master_on_manual manual_to_full off_during_wait off_during_health off_during_scan; do
+for CASE in manual_absent manual_login manual_ok manual_menu manual_balo manual_confirm manual_sequence master_off master_on_manual manual_to_full off_during_wait off_during_health off_during_scan; do
  : > "$ROOT/ops"
  OPEN_BACKPACK=0; BOT_RUN_ALLOWED=1; BOT_ACTIVE=0
  GATE_OFF_SEQUENCE=0; GATE_BACKPACK_OFF_SEQUENCE=0
@@ -97,7 +103,16 @@ $checks=@'
    if [ "$(grep -c -- --login-only "$ROOT/ops")" = 3 ] && [ "$GATE_NOW" -gt 300 ]; then echo 'PASS manual mode continues scans beyond 300s with absent game'; else FAILS=$((FAILS+1)); fi ;;
   manual_login)
    if grep -q 'INPUT text fixture_user' "$ROOT/ops" && grep -q 'INPUT tap 480 316' "$ROOT/ops"; then echo 'PASS real account-entry flow works in manual mode'; else FAILS=$((FAILS+1)); fi ;;
-  manual_ok|manual_menu|manual_balo|manual_confirm)
+  manual_ok|manual_confirm)
+   if [ "$CASE" = manual_ok ]; then EXPECTED='INPUT tap 480 400'; else EXPECTED='INPUT tap 550 400'; fi
+   if [ "$(grep -c "^$EXPECTED$" "$ROOT/ops")" != 3 ] || grep -Eq 'INPUT (text|keyevent)|--account' "$ROOT/ops"; then echo "FAIL popup flow $CASE"; FAILS=$((FAILS+1)); else echo "PASS popup taps without account entry $CASE"; fi ;;
+  manual_sequence)
+   if [ "$(grep -c '^INPUT tap 550 400$' "$ROOT/ops")" = 1 ] &&
+      [ "$(grep -c '^INPUT tap 480 400$' "$ROOT/ops")" = 1 ] &&
+      [ "$(grep -c '^INPUT tap 480 190$' "$ROOT/ops")" = 1 ] &&
+      [ "$(grep -c '^FINDER --account ' "$ROOT/ops")" = 1 ] &&
+      grep -q '^INPUT text fixture_user$' "$ROOT/ops"; then echo 'PASS CONFIRM -> OK -> LOGIN consumes exactly one account'; else echo 'FAIL sequential login flow'; FAILS=$((FAILS+1)); fi ;;
+  manual_menu|manual_balo)
    if grep -q INPUT "$ROOT/ops"; then echo "FAIL non-login click $CASE"; FAILS=$((FAILS+1)); else echo "PASS no non-login click $CASE"; fi ;;
   master_off)
    if [ -s "$ROOT/ops" ]; then echo 'FAIL master OFF did work'; FAILS=$((FAILS+1)); else echo 'PASS master OFF does not scan or launch'; fi ;;

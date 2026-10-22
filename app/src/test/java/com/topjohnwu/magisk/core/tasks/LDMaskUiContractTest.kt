@@ -104,6 +104,25 @@ class LDMaskUiContractTest {
         assertTrue(vm.contains("draft.filterKeys { it != \"open_backpack\" }"))
     }
 
+    @Test fun loginOnlyAllowsItsPopupsButOnlyLoginConsumesAccounts() {
+        val root = File("../module-src/ldlogin").takeIf { it.isDirectory }
+            ?: File("module-src/ldlogin")
+        val native = File(root, "native/ldlogin_finder.cpp").readText()
+            .substringAfter("for (const BatchSpec& spec : specs)").substringBefore("std::string path")
+        for (tag in listOf("LOGIN", "CONFIRM", "OK")) assertTrue(native.contains("std::strcmp(spec.tag, \"$tag\")"))
+        assertFalse(native.contains("\"BALO\""))
+        assertFalse(native.contains("\"MENU\""))
+        val action = File(root, "module/system/bin/app.sh").readText()
+            .substringAfter("login_from_result() {").substringBefore("scan_login_only() {")
+        assertTrue(action.contains("case \"\$action\" in LOGIN|CONFIRM|OK)"))
+        val popup = action.substringAfter("if [ \"\$action\" != LOGIN ]; then").substringBefore("fi")
+        assertTrue(popup.contains("sleep_with_gate 1"))
+        assertTrue(popup.contains("return \$?"))
+        assertFalse(popup.contains("perform_login"))
+        assertTrue(action.indexOf("bot_may_act || return 1") < action.indexOf("input tap"))
+        assertTrue(action.indexOf("perform_login || return 1") > action.indexOf("return \$?"))
+    }
+
     @Test fun cleanupIsAnAlwaysVisibleToolbarAction() {
         val xml = source("res/menu/menu_module_ldmask.xml")
         assertTrue(xml.contains("action_tools_cleanup"))

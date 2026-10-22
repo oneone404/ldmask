@@ -320,24 +320,30 @@ handle_post_restart() {
     done
 }
 
-# Same account-entry flow in both modes. Never treat another match tag as LOGIN.
+# Login flow accepts its two popups too; only LOGIN may consume an account.
 login_from_result() {
     local tag action x y score extra
     IFS=' ' read -r tag action x y score extra <<EOF
 $1
 EOF
-    [ "$tag" = FOUND ] && [ "$action" = LOGIN ] && [ -n "$score" ] && [ -z "$extra" ] || return 1
+    [ "$tag" = FOUND ] && [ -n "$score" ] && [ -z "$extra" ] || return 1
+    case "$action" in LOGIN|CONFIRM|OK) ;; *) return 1 ;; esac
+    case "$score" in 0.[0-9][0-9]|1.00) ;; *) return 1 ;; esac
     case "$x:$y" in *[!0-9:]*|:*|*:) return 1 ;; esac
     [ "${#x}" -le 3 ] && [ "${#y}" -le 3 ] && [ "$x" -lt 960 ] && [ "$y" -lt 540 ] || return 1
     bot_may_act || return 1
     input tap "$x" "$y" || return 1
+    if [ "$action" != LOGIN ]; then
+        sleep_with_gate 1
+        return $?
+    fi
     log_msg "[LOGIN] Da an nut Dang Nhap (ZingID)."
     sleep_with_gate 2 || return 1
     perform_login || return 1
     sleep_with_gate 2
 }
 
-# One screenshot per scan; no PID lookup, launcher, health check or 300s deadline.
+# One screenshot for LOGIN/CONFIRM/OK; no PID/launcher/health/300s deadline.
 scan_login_only() {
     bot_may_act || return 0
     [ "$OPEN_BACKPACK" != 1 ] && [ -x "$FINDER_V2" ] || return 0

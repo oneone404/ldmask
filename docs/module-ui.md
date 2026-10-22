@@ -25,10 +25,11 @@ The native reader/writer and runtime gate also suppress FramLogin when LDLogin i
 Legacy four-field descriptors remain readable. A three-field legacy module retains
 its original implicit automation; update the module to get the split runtime.
 
-With LDLogin ON / FramLogin OFF, the bot matches only LOGIN about once per five
-seconds plus capture/processing time, indefinitely. Account selection and entry are
-unchanged. No game launcher, PID/health monitoring, force-stop, BALO/MENU/CONFIRM/OK
-actions or racket flow runs in this mode. FramLogin ON restores the full guarded
+With LDLogin ON / FramLogin OFF, since LDLogin 1.28 the bot matches LOGIN, CONFIRM
+and OK about once per five seconds plus capture/processing time, indefinitely.
+Account selection and entry are unchanged. No game launcher, PID/health monitoring,
+force-stop, BALO/MENU action or racket flow runs in this mode. CONFIRM/OK popup taps
+never consume an account or enter credentials. FramLogin ON restores the full guarded
 startup/recovery/backpack flow. Manual Mở Game remains a separate explicit action.
 
 Data is /data/adb/ldlogin/settings.json. The module native finder reads and saves

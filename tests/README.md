@@ -167,3 +167,13 @@ actions, master OFF/ON, full-mode resumption and OFF during startup/health/captu
 It never starts/stops or clicks the real game. Updated native settings and generated
 frame tests verify defaults, persistence, switch dependency, real inotify/FIFO and
 that login-only matching does not search BALO/MENU/CONFIRM/OK.
+
+## Login-only popups (LDLogin 1.28)
+
+Login-only matching now allows LOGIN/CONFIRM/OK, still excludes BALO/MENU, and still
+branches before launch/PID/health logic. The real native finder is tested against
+generated frames for all five tags. Mock action and main-loop tests verify repeated
+CONFIRM/OK clicks without account access, the CONFIRM -> OK -> LOGIN sequence with
+exactly one account entry, malformed/foreign result rejection and master-OFF guards.
+Only a valid LOGIN result may invoke the unchanged account-entry function.
+This is a module-only change; LDMask 1.0.19 and its APK/root payload remain unchanged.
