@@ -58,6 +58,30 @@ static bool load_png(const char* path, Image& image) {
     return true;
 }
 
+// Bounded to the three login-only templates. No screenshot/account data retained.
+struct TemplateCache {
+    struct Entry { std::string path; struct stat stamp{}; Image image; bool valid=false; };
+    Entry entries[3];
+    unsigned loads=0,hits=0;
+    const Image* get(const std::string& path) {
+        Entry* entry=nullptr;
+        for(auto& candidate:entries)if(candidate.path==path){entry=&candidate;break;}
+        if(!entry)for(auto& candidate:entries)if(candidate.path.empty()){entry=&candidate;candidate.path=path;break;}
+        if(!entry)return nullptr;
+        struct stat before{},after{};
+        if(stat(path.c_str(),&before)!=0||!S_ISREG(before.st_mode)){
+            entry->valid=false;entry->image=Image{};return nullptr;
+        }
+        if(entry->valid&&config_same_snapshot(before,entry->stamp)){hits++;return &entry->image;}
+        entry->valid=false;entry->image=Image{};
+        Image fresh;
+        if(!load_png(path.c_str(),fresh)||stat(path.c_str(),&after)!=0||
+           !config_same_snapshot(before,after))return nullptr;
+        entry->image=std::move(fresh);entry->stamp=after;entry->valid=true;loads++;
+        return &entry->image;
+    }
+};
+
 static inline unsigned pixel_diff(const unsigned char* a, const unsigned char* b) {
     return static_cast<unsigned>(std::abs(int(a[0]) - int(b[0]))) +
            static_cast<unsigned>(std::abs(int(a[1]) - int(b[1]))) +
@@ -137,7 +161,7 @@ struct BatchSpec {
     int x, y, w, h;
 };
 
-static int run_batch(const char* image_dir, bool click, const char* screen_path, bool open_backpack = true) {
+static int run_batch(const char* image_dir, bool click, const char* screen_path, bool open_backpack = true, TemplateCache* cache = nullptr) {
     Image screen;
     if (!(screen_path ? load_png(screen_path, screen) : capture_screen(screen))) {
         std::fprintf(stderr, "ERROR_CAPTURE_SCREEN\n"); return 4;
@@ -151,30 +175,55 @@ static int run_batch(const char* image_dir, bool click, const char* screen_path,
     };
     const BatchSpec* winner = nullptr;
     MatchResult best;
-    Image winner_template;
+    unsigned winner_width=0,winner_height=0;
     for (const BatchSpec& spec : specs) {
         // Manual/login-only mode keeps login popups, never backpack or menu actions.
         if (!open_backpack && std::strcmp(spec.tag, "LOGIN") &&
             std::strcmp(spec.tag, "CONFIRM") && std::strcmp(spec.tag, "OK")) continue;
         std::string path = std::string(image_dir) + "/" + spec.file;
-        Image templ;
-        if (!load_png(path.c_str(), templ)) continue;
-        MatchResult match = find_template(screen, templ, spec.threshold, spec.region, spec.x, spec.y, spec.w, spec.h);
+        Image fresh;
+        const Image* templ=nullptr;
+        if(cache)templ=cache->get(path);
+        else if(load_png(path.c_str(),fresh))templ=&fresh;
+        if(!templ)continue;
+        MatchResult match = find_template(screen, *templ, spec.threshold, spec.region, spec.x, spec.y, spec.w, spec.h);
         if (match.x >= 0 && match.score >= spec.threshold && (!winner || match.score > best.score)) {
             winner = &spec;
             best = match;
-            winner_template = std::move(templ);
+            winner_width=templ->width;winner_height=templ->height;
         }
     }
     if (winner) {
-        const int cx = best.x + static_cast<int>(winner_template.width / 2);
-        const int cy = best.y + static_cast<int>(winner_template.height / 2);
+        const int cx = best.x + static_cast<int>(winner_width / 2);
+        const int cy = best.y + static_cast<int>(winner_height / 2);
         std::printf("FOUND %s %d %d %.2f\n", winner->tag, cx, cy, best.score);
         if (click && !tap_screen(cx, cy)) return 5;
         return 0;
     }
     std::printf("NOT_FOUND 0.00\n");
     return 1;
+}
+
+// Private FIFO request/reply worker; no timer, click, game launch or config writes.
+// Parent death kills the worker even while blocked waiting for a request.
+static int batch_worker(const char* image_dir,pid_t owner,const char* screen_path) {
+    if(owner<=1||getppid()!=owner||prctl(PR_SET_PDEATHSIG,SIGKILL)!=0||getppid()!=owner)return 3;
+    TemplateCache cache;
+    std::setvbuf(stdout,nullptr,_IOLBF,0);
+    std::puts("CACHE_READY");
+    char request[32];
+    while(std::fgets(request,sizeof(request),stdin)){
+        if(getppid()!=owner)return 3;
+        if(std::strcmp(request,"LOGIN\n")==0){
+            int code=run_batch(image_dir,false,screen_path,false,&cache);
+            if(code!=0&&code!=1)std::puts("ERROR_CAPTURE_SCREEN");
+        }else if(std::strcmp(request,"STATS\n")==0){
+            unsigned valid=0;for(const auto& entry:cache.entries)if(entry.valid)valid++;
+            std::printf("CACHE_STATS %u %u %u\n",cache.loads,cache.hits,valid);
+        }else if(std::strcmp(request,"QUIT\n")==0)return 0;
+        else return 2;
+    }
+    return 0;
 }
 
 // Timer and OK share exactly one fresh screenshot; never write a raw dump.
@@ -198,6 +247,13 @@ static int run_health(const char* image_dir, const char* screen_path) {
 }
 
 int main(int argc, char** argv) {
+    if(argc>=2&&std::strcmp(argv[1],"--batch-worker")==0){
+        if(argc!=4&&argc!=6)return 2;
+        if(argc==6&&std::strcmp(argv[4],"--screen"))return 2;
+        char* end=nullptr;long owner=std::strtol(argv[3],&end,10);
+        if(!end||*end||owner<=1||owner>0x7fffffff)return 2;
+        return batch_worker(argv[2],static_cast<pid_t>(owner),argc==6?argv[5]:nullptr);
+    }
     if (argc >= 2 && std::strcmp(argv[1], "--save-settings") == 0) {
         if ((argc != 6 && argc != 7) || (std::strcmp(argv[3], "0") && std::strcmp(argv[3], "1")) ||
             (std::strcmp(argv[5], "0") && std::strcmp(argv[5], "1")) ||

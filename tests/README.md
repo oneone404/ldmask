@@ -1,5 +1,12 @@
 # LDMask tests
 
+`powershell -File tests/test-login-cache.ps1 -Serial emulator-5556` exercises the
+production native login-only cache and private FIFO helper on generated frames.
+It verifies hits/invalidation/fresh screens, idle behavior, failures/timeouts,
+owner death, cleanup, and coexistence with the settings watcher. It uses ordinary
+shell and exact random scratch trees, not installed module settings or game input.
+See `VERIFICATION-ldlogin-v1.29.md` for scope and retained-memory caveats.
+
 `powershell -File tests/test-tools-shell.ps1 -Serial <ADB-serial>` executes Android
 shell fixtures without root: all target paths are rewritten into a unique
 `/data/local/tmp/ldmask-fixture-*` tree, root discovery and mount are mocked.

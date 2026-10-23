@@ -46,6 +46,16 @@ chmod 700 "$ROOT/finder"
 export ROOT CASE
 '@
 $mocks=@'
+cache_login_scan() {
+    case "$CASE" in
+      manual_cached)
+        echo CACHE_SCAN >> "$ROOT/ops"; CACHE_RESULT='FOUND OK 480 400 1.00'; return 0 ;;
+      manual_cached_off)
+        echo CACHE_SCAN >> "$ROOT/ops"; BOT_RUN_ALLOWED=0; CACHE_RESULT='FOUND LOGIN 480 190 1.00'; return 0 ;;
+    esac
+    return 1
+}
+cache_stop_worker() { :; }
 log_msg() { :; }
 reload_runtime_state() {
     local next
@@ -73,7 +83,7 @@ input() { echo "INPUT $*" >> "$ROOT/ops"; }
 '@
 $header=@'
 FAILS=0
-for CASE in manual_absent manual_login manual_ok manual_menu manual_balo manual_confirm manual_sequence master_off master_on_manual manual_to_full off_during_wait off_during_health off_during_scan; do
+for CASE in manual_absent manual_login manual_ok manual_menu manual_balo manual_confirm manual_sequence manual_cached manual_cached_off master_off master_on_manual manual_to_full off_during_wait off_during_health off_during_scan; do
  : > "$ROOT/ops"
  OPEN_BACKPACK=0; BOT_RUN_ALLOWED=1; BOT_ACTIVE=0
  GATE_OFF_SEQUENCE=0; GATE_BACKPACK_OFF_SEQUENCE=0
@@ -99,6 +109,10 @@ $checks=@'
    if [ "$CASE" != manual_to_full ] && grep -Eq 'PID_LOOKUP|AM |COMMAND|MONKEY|--health' "$ROOT/ops"; then echo "FAIL unexpected automation $CASE"; FAILS=$((FAILS+1)); fi ;;
  esac
  case "$CASE" in
+  manual_cached)
+   if [ "$(grep -c '^CACHE_SCAN$' "$ROOT/ops")" = 3 ] && [ "$(grep -c '^INPUT tap 480 400$' "$ROOT/ops")" = 3 ] && ! grep -q '^FINDER ' "$ROOT/ops"; then echo 'PASS production loop consumes persistent cache result without one-shot finder'; else echo 'FAIL cache result path'; FAILS=$((FAILS+1)); fi ;;
+  manual_cached_off)
+   if [ "$(grep -c '^CACHE_SCAN$' "$ROOT/ops")" = 1 ] && ! grep -Eq 'INPUT|^FINDER ' "$ROOT/ops"; then echo 'PASS master OFF after cache result blocks input and account access'; else echo 'FAIL stale cache result after OFF'; FAILS=$((FAILS+1)); fi ;;
   manual_absent)
    if [ "$(grep -c -- --login-only "$ROOT/ops")" = 3 ] && [ "$GATE_NOW" -gt 300 ]; then echo 'PASS manual mode continues scans beyond 300s with absent game'; else FAILS=$((FAILS+1)); fi ;;
   manual_login)

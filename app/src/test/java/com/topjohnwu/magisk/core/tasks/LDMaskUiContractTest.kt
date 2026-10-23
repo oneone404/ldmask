@@ -104,6 +104,31 @@ class LDMaskUiContractTest {
         assertTrue(vm.contains("draft.filterKeys { it != \"open_backpack\" }"))
     }
 
+    @Test fun loginCacheKeepsFiveSecondGateAndFreshScreenBoundary() {
+        val root = File("../module-src/ldlogin").takeIf { it.isDirectory }
+            ?: File("module-src/ldlogin")
+        val app = File(root, "module/system/bin/app.sh").readText()
+        assertTrue(app.contains("CHECK_INT=5"))
+        val scan = app.substringAfter("scan_login_only() {").substringBefore("# Thoi gian cho")
+        assertTrue(scan.contains("if cache_login_scan; then"))
+        assertTrue(scan.indexOf("bot_may_act || return 0") < scan.indexOf("if cache_login_scan; then"))
+        assertTrue(scan.indexOf("bot_may_act || return 0", scan.indexOf("if cache_login_scan; then")) > 0)
+        assertTrue(scan.contains("--batch \"\$IMAGES_DIR\" --login-only"))
+        assertTrue(app.contains("trap 'cache_stop_worker; gate_stop_watcher' EXIT"))
+        val main = app.substringAfter("# 1. Cap nhat setting LDLogin qua FIFO.")
+        assertTrue(main.substringBefore("# Manual mode stays here indefinitely").contains("cache_stop_worker"))
+        assertTrue(main.substringAfter("# Return to the complete flow").substringBefore("# 2. Kiem tra tien trinh").contains("cache_stop_worker"))
+        val helper = File(root, "module/system/bin/ldlogin_cache.sh").readText()
+        assertTrue(helper.contains("--batch-worker"))
+        assertTrue(helper.contains("read -r -t 8 CACHE_RESULT"))
+        assertTrue(helper.contains("cache_stop_worker; return 1"))
+        val native = File(root, "native/ldlogin_finder.cpp").readText()
+        assertTrue(native.contains("Entry entries[3]"))
+        assertTrue(native.contains("config_same_snapshot(before,entry->stamp)"))
+        assertTrue(native.contains("run_batch(image_dir,false,screen_path,false,&cache)"))
+        assertTrue(native.contains("PR_SET_PDEATHSIG,SIGKILL"))
+    }
+
     @Test fun loginOnlyAllowsItsPopupsButOnlyLoginConsumesAccounts() {
         val root = File("../module-src/ldlogin").takeIf { it.isDirectory }
             ?: File("module-src/ldlogin")

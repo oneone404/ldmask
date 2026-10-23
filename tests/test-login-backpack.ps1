@@ -10,6 +10,8 @@ $guard=$guard.Substring(0,$guard.IndexOf('# LDLogin''s native event frame'))
 $realSleep=$guard.Substring($guard.IndexOf('sleep_with_gate() {')).Replace('sleep_with_gate() {','real_sleep_with_gate() {')
 $program=$functions+"`n"+$guard+"`n"+$realSleep+"`n"+@'
 BOT_RUN_ALLOWED=1; BOT_ACTIVE=1
+cache_login_scan() { return 1; }
+cache_stop_worker() { :; }
 OPEN_BACKPACK=1; GATE_OFF_SEQUENCE=0; GATE_BACKPACK_OFF_SEQUENCE=0
 WAIT_BEFORE_MENU=0; CHECK_INT=1; GAME_LOAD_TIME=15; DELAY_AFTER_BALO=2
 IMG_BALO=backpack; IMG_VOT=racket; IMAGES_DIR=images; TARGET_PKG=test.fixture

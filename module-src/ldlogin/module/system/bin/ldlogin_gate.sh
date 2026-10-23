@@ -117,7 +117,7 @@ gate_start_watcher() {
     mkfifo -m 600 "$GATE_RUNTIME_DIR/events" 2>/dev/null || { gate_stop_watcher; return 1; }
     # Temporary RDWR fd prevents a blocking FIFO-open handshake.
     exec 9<>"$GATE_RUNTIME_DIR/events" || { gate_stop_watcher; return 1; }
-    (exec "$FINDER_V2" --watch-config "$GATE_PATH" "$$" 8<&- 9>&- >"$GATE_RUNTIME_DIR/events" 2>/dev/null) &
+    (exec "$FINDER_V2" --watch-config "$GATE_PATH" "$$" 6>&- 7<&- 8<&- 9>&- >"$GATE_RUNTIME_DIR/events" 2>/dev/null) &
     GATE_WATCH_PID=$!
     if ! gate_read_frame 3 9; then
         exec 9>&-

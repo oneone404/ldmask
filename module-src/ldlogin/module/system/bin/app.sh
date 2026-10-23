@@ -348,7 +348,11 @@ scan_login_only() {
     bot_may_act || return 0
     [ "$OPEN_BACKPACK" != 1 ] && [ -x "$FINDER_V2" ] || return 0
     local result
-    result=$("$FINDER_V2" --batch "$IMAGES_DIR" --login-only 2>/dev/null)
+    if cache_login_scan; then
+        result="$CACHE_RESULT"
+    else
+        result=$("$FINDER_V2" --batch "$IMAGES_DIR" --login-only 2>/dev/null)
+    fi
     bot_may_act || return 0
     [ "$OPEN_BACKPACK" != 1 ] || return 0
     login_from_result "$result"
@@ -373,7 +377,13 @@ GATE_SCRIPT="$SCRIPT_BIN_DIR/ldlogin_gate.sh"
 [ -f "$GATE_SCRIPT" ] || GATE_SCRIPT="/system/bin/ldlogin_gate.sh"
 [ -f "$GATE_SCRIPT" ] || exit 1
 . "$GATE_SCRIPT"
-trap 'gate_stop_watcher' EXIT
+# Optional helper: older/missing helper keeps the safe one-shot matcher path.
+cache_login_scan() { return 1; }
+cache_stop_worker() { :; }
+CACHE_SCRIPT="$SCRIPT_BIN_DIR/ldlogin_cache.sh"
+[ -f "$CACHE_SCRIPT" ] || CACHE_SCRIPT="/system/bin/ldlogin_cache.sh"
+[ ! -f "$CACHE_SCRIPT" ] || . "$CACHE_SCRIPT"
+trap 'cache_stop_worker; gate_stop_watcher' EXIT
 trap 'exit 0' HUP INT TERM
 
 log_msg "=== LDLOGIN KHOI DONG ==="
@@ -435,6 +445,7 @@ while true; do
 
     # Script van song de nhan thao tac bat lai; khong quet anh/click khi tat.
     if [ "$BOT_RUN_ALLOWED" != "1" ]; then
+        cache_stop_worker
         BOT_ACTIVE=0
         LAST_BACKPACK_MODE=0
         LAST_TIMER_CHECK=0
@@ -462,6 +473,7 @@ while true; do
     fi
 
     # Return to the complete flow with fresh counters; do not reuse a stale health verdict.
+    cache_stop_worker
     if [ "$LAST_BACKPACK_MODE" != 1 ] || [ "$LAST_AUTOMATION_SEQUENCE" != "$GATE_BACKPACK_OFF_SEQUENCE" ]; then
         BOT_ACTIVE=0
         LAST_BACKPACK_MODE=1
